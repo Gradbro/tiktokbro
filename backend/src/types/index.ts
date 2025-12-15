@@ -45,6 +45,7 @@ export interface TikTokScrapeResult {
 
 export interface SlideAnalysis {
   index: number;
+  imageDescription: string;
   backgroundType: string;
   backgroundStyle: string;
   extractedText: string;

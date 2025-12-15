@@ -23,7 +23,7 @@ export function Storyboard() {
   const isReviewStage = session?.stage === 'review';
   const isRemixReviewStage = session?.stage === 'remix-review';
   const isGeneratingOrEditing = session?.stage === 'generating' || session?.stage === 'editing' || session?.stage === 'complete';
-  const isImportFlow = session?.stage === 'importing' || session?.stage === 'analyzing' || (session?.tiktokData && session?.stage === 'prompt');
+  const isPromptStage = !session || session.stage === 'prompt' || session.stage === 'planning' || session.stage === 'importing' || session.stage === 'analyzing';
 
   // Auto-select first slide when slides are generated
   useEffect(() => {
@@ -79,7 +79,7 @@ export function Storyboard() {
   return (
     <div className="flex flex-col h-full">
       {/* Main Content */}
-      {!session || session.stage === 'prompt' || session.stage === 'planning' || session.stage === 'importing' || session.stage === 'analyzing' || isImportFlow ? (
+      {isPromptStage ? (
         <div className="flex h-full">
           <div className="w-[400px] border-r">
             <PromptPanel />
@@ -90,13 +90,10 @@ export function Storyboard() {
                 <Wand2 className="h-8 w-8 text-primary" />
               </div>
               <h2 className="text-2xl font-semibold text-foreground mb-2">
-                {isImportFlow ? 'Import from TikTok' : 'Create Your Slideshow'}
+                Import from TikTok
               </h2>
               <p className="text-muted-foreground">
-                {isImportFlow 
-                  ? 'Import a TikTok Photo Mode slideshow and remix it with your own content'
-                  : 'Describe your content idea and we\'ll generate stunning visuals'
-                }
+                Import a TikTok Photo Mode slideshow and remix it with similar images from Pinterest
               </p>
             </div>
           </div>

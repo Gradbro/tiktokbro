@@ -1,5 +1,6 @@
 import { getGeminiClient, TEXT_MODEL, SlideAnalysis } from './gemini.service';
 import { SlidePlan } from '../types';
+import { getSlidePlanPrompt, getSlidePlanUserPrompt, getRemixPlanPrompt } from '../prompts';
 
 export interface RemixPlan {
   slideNumber: number;
@@ -11,25 +12,8 @@ export interface RemixPlan {
 export async function generateSlidePlan(prompt: string, slideCount: number): Promise<SlidePlan[]> {
   const ai = getGeminiClient();
 
-  const systemPrompt = `You are a TikTok slideshow content planner. Create engaging, viral-worthy slide plans.
-
-Given a topic, create exactly ${slideCount} slides for a TikTok slideshow. Each slide should:
-- Have compelling content that hooks viewers
-- Have a detailed image prompt for AI image generation
-- Have suggested text overlay (short, impactful, TikTok-style)
-
-Return ONLY a valid JSON array with this exact structure:
-[
-  {
-    "slideNumber": 1,
-    "imagePrompt": "Detailed description for AI image generation - include style, mood, colors, composition",
-    "suggestedOverlay": "Short text for overlay (2-5 words)"
-  }
-]
-
-Make each slide flow into the next for storytelling. Keep content TikTok-appropriate and engaging.`;
-
-  const userPrompt = `Create a ${slideCount}-slide TikTok slideshow about: ${prompt}`;
+  const systemPrompt = getSlidePlanPrompt(slideCount);
+  const userPrompt = getSlidePlanUserPrompt(prompt, slideCount);
 
   const response = await ai.models.generateContent({
     model: TEXT_MODEL,
@@ -86,36 +70,13 @@ export async function generateRemixPlan(
   const ai = getGeminiClient();
 
   const slideDescriptions = originalAnalyses.map((a, i) => 
-    `Slide ${i + 1}: Background: ${a.backgroundType} (${a.backgroundStyle}), Text: "${a.extractedText}" at ${a.textPlacement}`
-  ).join('\n');
+    `Slide ${i + 1}:
+  - imageDescription: "${a.imageDescription}"
+  - Background: ${a.backgroundType} (${a.backgroundStyle})
+  - Text: "${a.extractedText}" at ${a.textPlacement}`
+  ).join('\n\n');
 
-  const systemPrompt = `You are a TikTok slideshow remix planner. Given an analysis of an original slideshow and a new topic, create a remix plan that maintains the original format/style but with new content.
-
-Original slideshow analysis:
-${slideDescriptions}
-
-User wants to create a new slideshow about: ${userPrompt}
-
-For each slide, provide:
-1. A Pinterest search query to find a similar background image (be specific: include style, mood, subject)
-2. New overlay text that matches the original format but for the new topic
-3. Brief layout notes
-
-Return ONLY a valid JSON array with this exact structure:
-[
-  {
-    "slideNumber": 1,
-    "pinterestQuery": "specific search terms for Pinterest (e.g., 'aesthetic mountain sunset photography')",
-    "newOverlayText": "Short text matching original style",
-    "layoutNotes": "Brief notes on text placement and style"
-  }
-]
-
-Match the original slideshow's:
-- Number of slides (${originalAnalyses.length} slides)
-- Text style and length
-- Visual aesthetic
-- Storytelling flow`;
+  const systemPrompt = getRemixPlanPrompt(slideDescriptions, userPrompt, originalAnalyses.length);
 
   const response = await ai.models.generateContent({
     model: TEXT_MODEL,

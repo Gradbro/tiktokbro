@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import axios from 'axios';
+import { SLIDE_ANALYSIS_PROMPT } from '../prompts';
 
 let ai: GoogleGenAI | null = null;
 
@@ -15,9 +16,11 @@ export function getGeminiClient(): GoogleGenAI {
 }
 
 export const TEXT_MODEL = 'gemini-2.0-flash';
+export const VISION_MODEL = 'gemini-3-pro-preview'; // Best for image analysis
 export const IMAGE_MODEL = 'imagen-4.0-generate-001';
 
 export interface SlideAnalysis {
+  imageDescription: string;
   backgroundType: string;
   backgroundStyle: string;
   extractedText: string;
@@ -39,19 +42,10 @@ export async function analyzeSlideImage(imageUrl: string): Promise<SlideAnalysis
   const base64Image = Buffer.from(imageResponse.data).toString('base64');
   const mimeType = imageResponse.headers['content-type'] || 'image/jpeg';
 
-  const prompt = `Analyze this TikTok slideshow image and extract the following information. Return ONLY a valid JSON object with these exact fields:
-
-{
-  "backgroundType": "Type of background (e.g., photo, illustration, gradient, solid color, collage)",
-  "backgroundStyle": "Visual style description (e.g., aesthetic minimalist, vibrant nature photo, dark moody, vintage film, bright colorful)",
-  "extractedText": "Any text visible on the slide (exact text, or empty string if none)",
-  "textPlacement": "Where the text is positioned (e.g., center, top-center, bottom-third, left-aligned, or 'none' if no text)"
-}
-
-Be concise but descriptive. Focus on details that would help recreate a similar style.`;
+  const prompt = SLIDE_ANALYSIS_PROMPT;
 
   const response = await ai.models.generateContent({
-    model: TEXT_MODEL,
+    model: VISION_MODEL,
     contents: [
       {
         role: 'user',
@@ -88,6 +82,7 @@ Be concise but descriptive. Focus on details that would help recreate a similar 
   try {
     const analysis: SlideAnalysis = JSON.parse(jsonStr);
     return {
+      imageDescription: analysis.imageDescription || '',
       backgroundType: analysis.backgroundType || 'unknown',
       backgroundStyle: analysis.backgroundStyle || 'unknown',
       extractedText: analysis.extractedText || '',

@@ -6,8 +6,7 @@ import {
   generatePlan, 
   generateImage, 
   scrapeTikTok, 
-  analyzeTikTokSlides, 
-  generateRemixPlan,
+  analyzeTikTokSlides,
   searchPinterest,
 } from '@/lib/api-client';
 import { ImageConfig, GeneratedSlide, RemixPlan, PinterestCandidate } from '@/types';
@@ -172,7 +171,7 @@ export function useSlideshowGenerator() {
   // === TikTok Import Functions ===
 
   /**
-   * Import a TikTok slideshow: scrape + analyze
+   * Import a TikTok slideshow: scrape + analyze + auto-create remix plans from imageDescription
    */
   const importFromTikTok = useCallback(
     async (tiktokUrl: string, config: ImageConfig) => {
@@ -203,10 +202,21 @@ export function useSlideshowGenerator() {
           throw new Error(analyzeResponse.error || 'Failed to analyze slides');
         }
 
-        setSlideAnalyses(analyzeResponse.data.analyses);
-        setStage('prompt'); // Go to prompt stage for user to enter new topic
+        const analyses = analyzeResponse.data.analyses;
+        setSlideAnalyses(analyses);
+
+        // Step 3: Auto-create remix plans using imageDescription as Pinterest query
+        const autoRemixPlans = analyses.map((analysis, index) => ({
+          slideNumber: index + 1,
+          pinterestQuery: analysis.imageDescription || `${analysis.backgroundStyle} ${analysis.backgroundType}`,
+          newOverlayText: analysis.extractedText || '',
+          layoutNotes: `Text at ${analysis.textPlacement}`,
+        }));
+
+        setRemixPlans(autoRemixPlans);
+        setStage('remix-review'); // Go directly to image selection
         
-        toast.success(`Imported ${tiktokData.slides.length} slides! Now describe your new slideshow.`);
+        toast.success(`Imported ${tiktokData.slides.length} slides! Select images for your slideshow.`);
       } catch (error) {
         console.error('Error importing from TikTok:', error);
         toast.error(error instanceof Error ? error.message : 'Failed to import TikTok');
@@ -215,41 +225,7 @@ export function useSlideshowGenerator() {
         setIsLoading(false);
       }
     },
-    [initImportSession, setSlideAnalyses, setStage]
-  );
-
-  /**
-   * Generate remix plan based on analyses and user prompt
-   */
-  const createRemixPlan = useCallback(
-    async (userPrompt: string) => {
-      if (!session?.slideAnalyses || session.slideAnalyses.length === 0) {
-        toast.error('No slide analyses available. Import a TikTok first.');
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        toast.info('Generating remix plan...');
-        const response = await generateRemixPlan({
-          analyses: session.slideAnalyses,
-          userPrompt,
-        });
-
-        if (!response.success || !response.plans) {
-          throw new Error(response.error || 'Failed to generate remix plan');
-        }
-
-        setRemixPlans(response.plans);
-        toast.success('Remix plan generated! Review and edit the Pinterest queries.');
-      } catch (error) {
-        console.error('Error generating remix plan:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to generate remix plan');
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [session?.slideAnalyses, setRemixPlans]
+    [initImportSession, setSlideAnalyses, setRemixPlans, setStage]
   );
 
   /**
@@ -269,6 +245,8 @@ export function useSlideshowGenerator() {
           imageUrl: url,
         }));
 
+        // Clear selected image and set new candidates
+        updateRemixPlan(slideNumber, { selectedImageUrl: undefined });
         setPinterestCandidates(slideNumber, candidates);
         toast.success(`Found ${candidates.length} images for slide ${slideNumber}`);
       } catch (error) {
@@ -276,7 +254,7 @@ export function useSlideshowGenerator() {
         toast.error(error instanceof Error ? error.message : 'Pinterest search failed');
       }
     },
-    [setPinterestCandidates]
+    [setPinterestCandidates, updateRemixPlan]
   );
 
   /**
@@ -324,7 +302,6 @@ export function useSlideshowGenerator() {
     regenerateSlide,
     // TikTok import flow
     importFromTikTok,
-    createRemixPlan,
     searchPinterestForSlide,
     searchPinterestForAll,
     editRemixPlan,
