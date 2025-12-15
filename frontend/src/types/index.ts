@@ -1,4 +1,4 @@
-export type WorkflowStage = 'prompt' | 'planning' | 'review' | 'generating' | 'editing' | 'complete';
+export type WorkflowStage = 'prompt' | 'planning' | 'review' | 'generating' | 'editing' | 'complete' | 'importing' | 'analyzing' | 'remix-review';
 
 export interface SlidePlan {
   slideNumber: number;
@@ -30,6 +30,43 @@ export interface ImageConfig {
   slideCount: number;
 }
 
+// TikTok Import Types
+export interface TikTokSlide {
+  index: number;
+  imageUrl: string;
+}
+
+export interface TikTokScrapeResult {
+  originalUrl: string;
+  caption: string;
+  slides: TikTokSlide[];
+  authorName?: string;
+}
+
+export interface SlideAnalysis {
+  index: number;
+  backgroundType: string;
+  backgroundStyle: string;
+  extractedText: string;
+  textPlacement: string;
+}
+
+export interface RemixPlan {
+  slideNumber: number;
+  pinterestQuery: string;
+  newOverlayText: string;
+  layoutNotes: string;
+  // Pinterest candidates fetched after user triggers search
+  pinterestCandidates?: PinterestCandidate[];
+  selectedImageUrl?: string;
+}
+
+export interface PinterestCandidate {
+  imageUrl: string;
+  pinUrl?: string;
+  title?: string;
+}
+
 export interface SlideshowSession {
   id: string;
   prompt: string;
@@ -37,6 +74,10 @@ export interface SlideshowSession {
   plans: SlidePlan[];
   slides: GeneratedSlide[];
   config: ImageConfig;
+  // TikTok import data
+  tiktokData?: TikTokScrapeResult;
+  slideAnalyses?: SlideAnalysis[];
+  remixPlans?: RemixPlan[];
 }
 
 // API types
@@ -60,5 +101,51 @@ export interface GenerateImageRequest {
 export interface GenerateImageResponse {
   success: boolean;
   imageData?: string;
+  error?: string;
+}
+
+export interface TikTokScrapeRequest {
+  url: string;
+}
+
+export interface TikTokScrapeResponse {
+  success: boolean;
+  data?: TikTokScrapeResult;
+  error?: string;
+}
+
+export interface TikTokAnalyzeRequest {
+  slides: TikTokSlide[];
+}
+
+export interface TikTokAnalyzeResponse {
+  success: boolean;
+  data?: { analyses: SlideAnalysis[] };
+  error?: string;
+}
+
+export interface RemixPlanRequest {
+  analyses: SlideAnalysis[];
+  userPrompt: string;
+}
+
+export interface RemixPlanResponse {
+  success: boolean;
+  plans?: RemixPlan[];
+  error?: string;
+}
+
+export interface PinterestSearchRequest {
+  query: string;
+  limit?: number;
+}
+
+export interface PinterestSearchResponse {
+  success: boolean;
+  data?: {
+    query: string;
+    urls: string[];
+    count: number;
+  };
   error?: string;
 }

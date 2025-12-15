@@ -1,11 +1,15 @@
 import { Router } from 'express';
 import planRoutes from './plan.routes';
 import imageRoutes from './image.routes';
+import pinterestRoutes from './pinterest.routes';
+import tiktokRoutes from './tiktok.routes';
 
 const router = Router();
 
 router.use('/generate-plan', planRoutes);
 router.use('/generate-image', imageRoutes);
+router.use('/pinterest', pinterestRoutes);
+router.use('/tiktok', tiktokRoutes);
 
 // Health check
 router.get('/health', (_, res) => {

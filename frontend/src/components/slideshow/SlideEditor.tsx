@@ -77,9 +77,11 @@ export function SlideEditor({ slide }: SlideEditorProps) {
     });
     fabricRef.current = canvas;
 
-    // Load background image
-    const imgUrl = `data:image/png;base64,${slide.imageData}`;
-    fabric.FabricImage.fromURL(imgUrl).then((img: fabric.FabricImage) => {
+    // Load background image - check if it's a URL or base64 data
+    const imgUrl = slide.imageData.startsWith('http')
+      ? slide.imageData
+      : `data:image/png;base64,${slide.imageData}`;
+    fabric.FabricImage.fromURL(imgUrl, { crossOrigin: 'anonymous' }).then((img: fabric.FabricImage) => {
       img.scaleToWidth(360);
       img.scaleToHeight(640);
       canvas.backgroundImage = img;

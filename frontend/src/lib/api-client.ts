@@ -3,6 +3,14 @@ import {
   GeneratePlanResponse,
   GenerateImageRequest,
   GenerateImageResponse,
+  TikTokScrapeRequest,
+  TikTokScrapeResponse,
+  TikTokAnalyzeRequest,
+  TikTokAnalyzeResponse,
+  RemixPlanRequest,
+  RemixPlanResponse,
+  PinterestSearchRequest,
+  PinterestSearchResponse,
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -47,4 +55,41 @@ export async function generateImage(
 
 export async function healthCheck(): Promise<{ status: string; timestamp: string }> {
   return fetchApi('/health');
+}
+
+// TikTok Import API
+export async function scrapeTikTok(
+  request: TikTokScrapeRequest
+): Promise<TikTokScrapeResponse> {
+  return fetchApi<TikTokScrapeResponse>('/tiktok/scrape', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function analyzeTikTokSlides(
+  request: TikTokAnalyzeRequest
+): Promise<TikTokAnalyzeResponse> {
+  return fetchApi<TikTokAnalyzeResponse>('/tiktok/analyze', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function generateRemixPlan(
+  request: RemixPlanRequest
+): Promise<RemixPlanResponse> {
+  return fetchApi<RemixPlanResponse>('/generate-plan/remix', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function searchPinterest(
+  request: PinterestSearchRequest
+): Promise<PinterestSearchResponse> {
+  return fetchApi<PinterestSearchResponse>('/pinterest/search', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
 }

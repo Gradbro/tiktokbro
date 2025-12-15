@@ -68,7 +68,7 @@ export function SlideCard({ slide, onClick, isSelected }: SlideCardProps) {
 
           {slide.status === 'complete' && slide.imageData && (
             <Image
-              src={`data:image/png;base64,${slide.imageData}`}
+              src={slide.imageData.startsWith('http') ? slide.imageData : `data:image/png;base64,${slide.imageData}`}
               alt={`Slide ${slide.slideNumber}`}
               fill
               className="object-cover"

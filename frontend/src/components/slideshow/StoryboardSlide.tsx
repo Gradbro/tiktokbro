@@ -17,7 +17,13 @@ export function StoryboardSlide({ slide, isSelected, onClick }: StoryboardSlideP
 
   const getImageSrc = () => {
     if (slide.editedImageData) return slide.editedImageData;
-    if (slide.imageData) return `data:image/png;base64,${slide.imageData}`;
+    if (slide.imageData) {
+      // Check if imageData is already a URL (from Pinterest) or base64 data
+      if (slide.imageData.startsWith('http')) {
+        return slide.imageData;
+      }
+      return `data:image/png;base64,${slide.imageData}`;
+    }
     return null;
   };
 

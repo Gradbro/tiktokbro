@@ -9,6 +9,10 @@ import {
   ImageConfig,
   SlideshowSession,
   TextOverlay,
+  TikTokScrapeResult,
+  SlideAnalysis,
+  RemixPlan,
+  PinterestCandidate,
 } from '@/types';
 
 interface SlideshowState {
@@ -24,7 +28,13 @@ type SlideshowAction =
   | { type: 'SET_SLIDES'; payload: GeneratedSlide[] }
   | { type: 'UPDATE_SLIDE'; payload: { id: string; updates: Partial<GeneratedSlide> } }
   | { type: 'UPDATE_TEXT_OVERLAY'; payload: { id: string; overlay: TextOverlay } }
-  | { type: 'RESET' };
+  | { type: 'RESET' }
+  // TikTok import actions
+  | { type: 'INIT_IMPORT_SESSION'; payload: { tiktokData: TikTokScrapeResult; config: ImageConfig } }
+  | { type: 'SET_SLIDE_ANALYSES'; payload: SlideAnalysis[] }
+  | { type: 'SET_REMIX_PLANS'; payload: RemixPlan[] }
+  | { type: 'UPDATE_REMIX_PLAN'; payload: { slideNumber: number; updates: Partial<RemixPlan> } }
+  | { type: 'SET_PINTEREST_CANDIDATES'; payload: { slideNumber: number; candidates: PinterestCandidate[] } };
 
 const initialState: SlideshowState = {
   session: null,
@@ -44,6 +54,21 @@ function slideshowReducer(state: SlideshowState, action: SlideshowAction): Slide
         },
       };
 
+    case 'INIT_IMPORT_SESSION':
+      return {
+        session: {
+          id: uuidv4(),
+          prompt: '',
+          stage: 'analyzing',
+          plans: [],
+          slides: [],
+          config: action.payload.config,
+          tiktokData: action.payload.tiktokData,
+          slideAnalyses: [],
+          remixPlans: [],
+        },
+      };
+
     case 'SET_STAGE':
       if (!state.session) return state;
       return {
@@ -54,6 +79,44 @@ function slideshowReducer(state: SlideshowState, action: SlideshowAction): Slide
       if (!state.session) return state;
       return {
         session: { ...state.session, plans: action.payload, stage: 'review' },
+      };
+
+    case 'SET_SLIDE_ANALYSES':
+      if (!state.session) return state;
+      return {
+        session: { ...state.session, slideAnalyses: action.payload },
+      };
+
+    case 'SET_REMIX_PLANS':
+      if (!state.session) return state;
+      return {
+        session: { ...state.session, remixPlans: action.payload, stage: 'remix-review' },
+      };
+
+    case 'UPDATE_REMIX_PLAN':
+      if (!state.session || !state.session.remixPlans) return state;
+      return {
+        session: {
+          ...state.session,
+          remixPlans: state.session.remixPlans.map((plan) =>
+            plan.slideNumber === action.payload.slideNumber
+              ? { ...plan, ...action.payload.updates }
+              : plan
+          ),
+        },
+      };
+
+    case 'SET_PINTEREST_CANDIDATES':
+      if (!state.session || !state.session.remixPlans) return state;
+      return {
+        session: {
+          ...state.session,
+          remixPlans: state.session.remixPlans.map((plan) =>
+            plan.slideNumber === action.payload.slideNumber
+              ? { ...plan, pinterestCandidates: action.payload.candidates }
+              : plan
+          ),
+        },
       };
 
     case 'UPDATE_PLAN':
@@ -130,9 +193,14 @@ function slideshowReducer(state: SlideshowState, action: SlideshowAction): Slide
 interface SlideshowContextValue {
   session: SlideshowSession | null;
   initSession: (prompt: string, config: ImageConfig) => void;
+  initImportSession: (tiktokData: TikTokScrapeResult, config: ImageConfig) => void;
   setStage: (stage: WorkflowStage) => void;
   setPlans: (plans: SlidePlan[]) => void;
   updatePlan: (slideNumber: number, updates: Partial<SlidePlan>) => void;
+  setSlideAnalyses: (analyses: SlideAnalysis[]) => void;
+  setRemixPlans: (plans: RemixPlan[]) => void;
+  updateRemixPlan: (slideNumber: number, updates: Partial<RemixPlan>) => void;
+  setPinterestCandidates: (slideNumber: number, candidates: PinterestCandidate[]) => void;
   initSlides: (plans: SlidePlan[]) => void;
   setSlides: (slides: GeneratedSlide[]) => void;
   updateSlide: (id: string, updates: Partial<GeneratedSlide>) => void;
@@ -149,10 +217,20 @@ export function SlideshowProvider({ children }: { children: ReactNode }) {
     session: state.session,
     initSession: (prompt, config) =>
       dispatch({ type: 'INIT_SESSION', payload: { prompt, config } }),
+    initImportSession: (tiktokData, config) =>
+      dispatch({ type: 'INIT_IMPORT_SESSION', payload: { tiktokData, config } }),
     setStage: (stage) => dispatch({ type: 'SET_STAGE', payload: stage }),
     setPlans: (plans) => dispatch({ type: 'SET_PLANS', payload: plans }),
     updatePlan: (slideNumber, updates) =>
       dispatch({ type: 'UPDATE_PLAN', payload: { slideNumber, updates } }),
+    setSlideAnalyses: (analyses) =>
+      dispatch({ type: 'SET_SLIDE_ANALYSES', payload: analyses }),
+    setRemixPlans: (plans) =>
+      dispatch({ type: 'SET_REMIX_PLANS', payload: plans }),
+    updateRemixPlan: (slideNumber, updates) =>
+      dispatch({ type: 'UPDATE_REMIX_PLAN', payload: { slideNumber, updates } }),
+    setPinterestCandidates: (slideNumber, candidates) =>
+      dispatch({ type: 'SET_PINTEREST_CANDIDATES', payload: { slideNumber, candidates } }),
     initSlides: (plans) => dispatch({ type: 'INIT_SLIDES', payload: plans }),
     setSlides: (slides) => dispatch({ type: 'SET_SLIDES', payload: slides }),
     updateSlide: (id, updates) =>
