@@ -124,8 +124,16 @@ export class PinterestScraper {
       const results = response.data?.resource_response?.data?.results || [];
 
       for (const result of results) {
-        if (result?.images?.orig?.url) {
-          imageUrls.push(result.images.orig.url);
+        // Prefer web-optimized sizes (always JPEG) over orig (can be HEIC from iPhone uploads)
+        // 736x is high quality and always web-friendly format
+        const imageUrl = 
+          result?.images?.['736x']?.url ||
+          result?.images?.['564x']?.url ||
+          result?.images?.['474x']?.url ||
+          result?.images?.orig?.url;
+        
+        if (imageUrl && !imageUrl.toLowerCase().endsWith('.heic')) {
+          imageUrls.push(imageUrl);
           if (imageUrls.length >= limit) break;
         }
       }

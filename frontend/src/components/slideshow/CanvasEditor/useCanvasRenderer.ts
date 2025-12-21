@@ -6,6 +6,18 @@ interface UseCanvasRendererOptions {
   height: number;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+// Proxy external images through backend to handle CORS
+function getProxiedUrl(src: string): string {
+  // Data URLs don't need proxying
+  if (src.startsWith('data:')) {
+    return src;
+  }
+  // Use backend proxy with proper CORS headers
+  return `${API_URL}/api/generate-image/proxy?url=${encodeURIComponent(src)}`;
+}
+
 export function useCanvasRenderer({ width, height }: UseCanvasRendererOptions) {
   const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
@@ -13,7 +25,8 @@ export function useCanvasRenderer({ width, height }: UseCanvasRendererOptions) {
    * Load an image and cache it for reuse
    */
   const loadImage = useCallback((src: string): Promise<HTMLImageElement> => {
-    const cached = imageCache.current.get(src);
+    const proxiedSrc = getProxiedUrl(src);
+    const cached = imageCache.current.get(proxiedSrc);
     if (cached && cached.complete) {
       return Promise.resolve(cached);
     }
@@ -22,11 +35,14 @@ export function useCanvasRenderer({ width, height }: UseCanvasRendererOptions) {
       const img = new Image();
       img.crossOrigin = 'anonymous'; // Required for canvas export
       img.onload = () => {
-        imageCache.current.set(src, img);
+        imageCache.current.set(proxiedSrc, img);
         resolve(img);
       };
-      img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
-      img.src = src;
+      img.onerror = (e) => {
+        console.error('Image load failed:', { original: src, proxied: proxiedSrc, error: e });
+        reject(new Error(`Failed to load image: ${src}`));
+      };
+      img.src = proxiedSrc;
     });
   }, []);
 
@@ -211,7 +227,7 @@ export function useCanvasRenderer({ width, height }: UseCanvasRendererOptions) {
       
       ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
     } catch (error) {
-      console.error('Failed to render image:', error);
+      // Silently fail - just show empty canvas, the UI layer handles messaging
       ctx.fillStyle = '#374151';
       ctx.fillRect(0, 0, targetWidth, targetHeight);
     }

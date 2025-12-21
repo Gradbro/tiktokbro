@@ -1,8 +1,38 @@
 import { Router, Request, Response } from 'express';
+import axios from 'axios';
 import { generateImage } from '../services/image.service';
 import { GenerateImageRequest, GenerateImageResponse } from '../types';
 
 const router = Router();
+
+// Proxy endpoint for loading external images (bypasses CORS)
+router.get('/proxy', async (req: Request, res: Response) => {
+  const imageUrl = req.query.url as string;
+  
+  if (!imageUrl) {
+    res.status(400).send('URL parameter required');
+    return;
+  }
+
+  try {
+    const response = await axios.get(imageUrl, {
+      responseType: 'arraybuffer',
+      timeout: 15000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+      },
+    });
+
+    const contentType = response.headers['content-type'] || 'image/jpeg';
+    res.set('Content-Type', contentType);
+    res.set('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+    res.set('Access-Control-Allow-Origin', '*'); // Allow canvas to load with crossOrigin
+    res.send(Buffer.from(response.data));
+  } catch (error) {
+    console.error('Image proxy error:', error);
+    res.status(500).send('Failed to fetch image');
+  }
+});
 
 router.post('/', async (req: Request<{}, GenerateImageResponse, GenerateImageRequest>, res: Response<GenerateImageResponse>) => {
   console.log('\n=== IMAGE GENERATION REQUEST ===');

@@ -29,6 +29,9 @@ export function RemixPlanReview() {
   const [uploadedImagesMap, setUploadedImagesMap] = useState<Map<number, string[]>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Track failed image URLs to hide them from the grid
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  
   // Refs
   const hasAutoSearched = useRef(false);
   const canvasEditorRefs = useRef<Map<number, CanvasEditorRef>>(new Map());
@@ -122,15 +125,19 @@ export function RemixPlanReview() {
     }
   }, [session?.remixPlans, searchPinterestForAll]);
 
-  // Auto-select first Pinterest image when available
+  // Auto-select first Pinterest image when available (skip failed images)
   useEffect(() => {
     if (!session?.remixPlans) return;
     session.remixPlans.forEach((plan) => {
       if (plan.pinterestCandidates?.length && !plan.selectedImageUrl) {
-        editRemixPlan(plan.slideNumber, { selectedImageUrl: plan.pinterestCandidates[0].imageUrl });
+        // Find first image that hasn't failed
+        const validImage = plan.pinterestCandidates.find(c => !failedImages.has(c.imageUrl));
+        if (validImage) {
+          editRemixPlan(plan.slideNumber, { selectedImageUrl: validImage.imageUrl });
+        }
       }
     });
-  }, [session?.remixPlans, editRemixPlan]);
+  }, [session?.remixPlans, editRemixPlan, failedImages]);
 
   // Update text boxes for current slide
   const handleTextBoxesChange = useCallback((newTextBoxes: TextBox[]) => {
@@ -263,6 +270,20 @@ export function RemixPlanReview() {
     editRemixPlan(slideNumber, { selectedImageUrl: imageUrl });
   };
 
+  // Handle image load error - hide failed images silently
+  const handleImageError = useCallback((imageUrl: string) => {
+    setFailedImages(prev => {
+      const next = new Set(prev);
+      next.add(imageUrl);
+      return next;
+    });
+    
+    // If this was the selected image, deselect it
+    if (currentPlan?.selectedImageUrl === imageUrl) {
+      editRemixPlan(activeSlide, { selectedImageUrl: undefined });
+    }
+  }, [currentPlan?.selectedImageUrl, editRemixPlan, activeSlide]);
+
   // Download all slides as a zip file
   const handleDownloadAll = async () => {
     if (!session?.remixPlans) return;
@@ -277,7 +298,22 @@ export function RemixPlanReview() {
     for (const plan of session.remixPlans) {
       if (!plan.selectedImageUrl) continue;
 
-      const slideTextBoxes = textBoxesMap.get(plan.slideNumber) || [];
+      // Get text boxes from map, or fallback to plan's overlay text if not visited
+      let slideTextBoxes = textBoxesMap.get(plan.slideNumber);
+      if (!slideTextBoxes || slideTextBoxes.length === 0) {
+        // Slide was never visited - create text box from plan data
+        if (plan.newOverlayText) {
+          slideTextBoxes = [{
+            ...DEFAULT_TEXT_BOX,
+            id: `text-${plan.slideNumber}-1`,
+            text: plan.newOverlayText,
+            x: plan.textPosition?.x || 50,
+            y: plan.textPosition?.y || 85,
+          }];
+        } else {
+          slideTextBoxes = [];
+        }
+      }
 
       try {
         // Render this slide to the offscreen canvas
@@ -435,10 +471,18 @@ export function RemixPlanReview() {
               {(() => {
                 const uploadedImages = uploadedImagesMap.get(activeSlide) || [];
                 const pinterestImages = currentPlan.pinterestCandidates || [];
+                
+                // Filter out images that failed to load
                 const allImages = [
                   ...uploadedImages.map((url, i) => ({ url, type: 'upload' as const, key: `upload-${i}` })),
-                  ...pinterestImages.map((c, i) => ({ url: c.imageUrl, type: 'pinterest' as const, key: `pinterest-${i}` })),
+                  ...pinterestImages
+                    .filter(c => !failedImages.has(c.imageUrl))
+                    .map((c, i) => ({ url: c.imageUrl, type: 'pinterest' as const, key: `pinterest-${i}` })),
                 ];
+                
+                // Check if we had Pinterest results but all failed
+                const allPinterestFailed = pinterestImages.length > 0 && 
+                  pinterestImages.every(c => failedImages.has(c.imageUrl));
                 
                 if (allImages.length > 0) {
                   return (
@@ -455,7 +499,12 @@ export function RemixPlanReview() {
                           )}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img.url} alt="Option" className="w-full h-full object-cover" />
+                          <img 
+                            src={img.url} 
+                            alt="Option" 
+                            className="w-full h-full object-cover"
+                            onError={() => handleImageError(img.url)}
+                          />
                           {currentPlan.selectedImageUrl === img.url && (
                             <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
                               <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
@@ -479,6 +528,21 @@ export function RemixPlanReview() {
                     <div className="text-center text-muted-foreground p-4">
                       {isLoading || searchingSlide === activeSlide ? (
                         <><Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin" /><p className="text-sm">Searching...</p></>
+                      ) : allPinterestFailed ? (
+                        <>
+                          <Search className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm font-medium">No compatible images found</p>
+                          <p className="text-xs mt-1 opacity-70">Try a different search query</p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload className="h-3 w-3 mr-1" />
+                            Upload Instead
+                          </Button>
+                        </>
                       ) : (
                         <>
                           <Upload className="h-6 w-6 mx-auto mb-2 opacity-50" />

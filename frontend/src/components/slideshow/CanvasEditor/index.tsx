@@ -85,9 +85,6 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(({
   
   const { render, exportToBlob, hitTest } = useCanvasRenderer({ width, height });
 
-  // Get selected text box
-  const selectedBox = textBoxes.find(box => box.id === selectedTextId);
-
   // Re-render canvas when dependencies change
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -289,8 +286,6 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(({
           
           // Calculate the bounding box for the text
           const bounds = getTextBoundingBox(box, width, height);
-          const pixelX = (box.x / 100) * width;
-          const pixelY = (box.y / 100) * height;
           
           return (
             <div key={box.id}>
