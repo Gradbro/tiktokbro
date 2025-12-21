@@ -99,22 +99,7 @@ export class PinterestScraper {
     };
 
     try {
-      console.log('[Pinterest] Searching for:', query);
-      console.log('[Pinterest] Request URL:', url.substring(0, 200) + '...');
-      
       const response = await this.session.get(url, { headers });
-
-      console.log('[Pinterest] Response status:', response.status);
-      console.log('[Pinterest] Response data keys:', Object.keys(response.data || {}));
-      
-      if (response.data?.resource_response) {
-        console.log('[Pinterest] resource_response keys:', Object.keys(response.data.resource_response));
-        console.log('[Pinterest] data keys:', Object.keys(response.data.resource_response?.data || {}));
-        console.log('[Pinterest] results count:', response.data.resource_response?.data?.results?.length || 0);
-      } else {
-        console.log('[Pinterest] No resource_response in data');
-        console.log('[Pinterest] Full response data:', JSON.stringify(response.data).substring(0, 500));
-      }
 
       if (this.sleepTime) {
         await this.sleep(this.sleepTime);
@@ -126,27 +111,23 @@ export class PinterestScraper {
       for (const result of results) {
         // Prefer web-optimized sizes (always JPEG) over orig (can be HEIC from iPhone uploads)
         // 736x is high quality and always web-friendly format
-        const imageUrl = 
+        const imageUrl =
           result?.images?.['736x']?.url ||
           result?.images?.['564x']?.url ||
           result?.images?.['474x']?.url ||
           result?.images?.orig?.url;
-        
+
         if (imageUrl && !imageUrl.toLowerCase().endsWith('.heic')) {
           imageUrls.push(imageUrl);
-          if (imageUrls.length >= limit) break;
+          if (imageUrls.length >= limit) {
+            break;
+          }
         }
       }
 
-      console.log('[Pinterest] Found image URLs:', imageUrls.length);
       return imageUrls;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[Pinterest] Search error:', message);
-      if (axios.isAxiosError(error)) {
-        console.error('[Pinterest] Response status:', error.response?.status);
-        console.error('[Pinterest] Response data:', JSON.stringify(error.response?.data).substring(0, 500));
-      }
       this.errors.push(`Search failed: ${message}`);
       return [];
     }
@@ -155,10 +136,7 @@ export class PinterestScraper {
   /**
    * Get pin details from a user's board
    */
-  async getBoardDetails(
-    username: string,
-    board: string
-  ): Promise<Record<string, unknown> | null> {
+  async getBoardDetails(username: string, board: string): Promise<Record<string, unknown> | null> {
     const headers = {
       ...this.getBaseHeaders(),
       'x-pinterest-pws-handler': 'www/[username]/[slug].js',

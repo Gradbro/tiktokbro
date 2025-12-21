@@ -8,7 +8,7 @@ const router = Router();
 // Proxy endpoint for loading external images (bypasses CORS)
 router.get('/proxy', async (req: Request, res: Response) => {
   const imageUrl = req.query.url as string;
-  
+
   if (!imageUrl) {
     res.status(400).send('URL parameter required');
     return;
@@ -34,56 +34,52 @@ router.get('/proxy', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request<{}, GenerateImageResponse, GenerateImageRequest>, res: Response<GenerateImageResponse>) => {
-  console.log('\n=== IMAGE GENERATION REQUEST ===');
-  console.log('Received at:', new Date().toISOString());
-  console.log('Body:', JSON.stringify(req.body, null, 2));
+router.post(
+  '/',
+  async (
+    req: Request<{}, GenerateImageResponse, GenerateImageRequest>,
+    res: Response<GenerateImageResponse>
+  ) => {
+    try {
+      const { imagePrompt, aspectRatio = '9:16', model } = req.body;
 
-  try {
-    const { imagePrompt, aspectRatio = '9:16', model } = req.body;
+      if (!imagePrompt || typeof imagePrompt !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'Image prompt is required',
+        });
+        return;
+      }
 
-    if (!imagePrompt || typeof imagePrompt !== 'string') {
-      console.log('ERROR: Image prompt is required');
-      res.status(400).json({
-        success: false,
-        error: 'Image prompt is required',
+      if (imagePrompt.length < 3) {
+        res.status(400).json({
+          success: false,
+          error: 'Image prompt must be at least 3 characters',
+        });
+        return;
+      }
+
+      const validAspectRatios = ['9:16', '1:1', '16:9'] as const;
+      const validAspectRatio = validAspectRatios.includes(
+        aspectRatio as (typeof validAspectRatios)[number]
+      )
+        ? (aspectRatio as '9:16' | '1:1' | '16:9')
+        : '9:16';
+
+      const imageData = await generateImage(imagePrompt, validAspectRatio, model);
+
+      res.json({
+        success: true,
+        imageData,
       });
-      return;
-    }
-
-    if (imagePrompt.length < 3) {
-      console.log('ERROR: Image prompt too short');
-      res.status(400).json({
+    } catch (error) {
+      console.error('Image generation failed:', error);
+      res.status(500).json({
         success: false,
-        error: 'Image prompt must be at least 3 characters',
+        error: error instanceof Error ? error.message : 'Failed to generate image',
       });
-      return;
     }
-
-    const validAspectRatios = ['9:16', '1:1', '16:9'] as const;
-    const validAspectRatio = validAspectRatios.includes(aspectRatio as typeof validAspectRatios[number])
-      ? aspectRatio as '9:16' | '1:1' | '16:9'
-      : '9:16';
-
-    console.log('Calling Gemini API for image generation...');
-    console.log('Model:', model);
-    console.log('Aspect Ratio:', validAspectRatio);
-
-    const imageData = await generateImage(imagePrompt, validAspectRatio, model);
-
-    console.log('SUCCESS: Image generated, size:', imageData.length, 'characters');
-
-    res.json({
-      success: true,
-      imageData,
-    });
-  } catch (error) {
-    console.error('ERROR generating image:', error);
-    res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to generate image',
-    });
   }
-});
+);
 
 export default router;

@@ -54,7 +54,7 @@ router.get('/board/:username/:board', async (req: Request, res: Response) => {
     }
 
     const scraper = new PinterestScraper();
-    const details = await scraper.getPinDetails(username, board);
+    const details = await scraper.getBoardDetails(username, board);
 
     return res.json({
       success: true,

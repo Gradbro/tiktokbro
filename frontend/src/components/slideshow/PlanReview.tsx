@@ -7,13 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import {
-  Play,
-  Loader2,
-  Pencil,
-  Image as ImageIcon,
-  ChevronRight,
-} from 'lucide-react';
+import { Play, Loader2, Pencil, Image as ImageIcon, ChevronRight } from 'lucide-react';
 
 export function PlanReview() {
   const { session, updatePlan } = useSlideshowContext();
@@ -37,9 +31,7 @@ export function PlanReview() {
             <div
               key={plan.slideNumber}
               className={`cursor-pointer transition-colors ${
-                expandedSlide === plan.slideNumber
-                  ? 'bg-primary/5'
-                  : 'hover:bg-muted'
+                expandedSlide === plan.slideNumber ? 'bg-primary/5' : 'hover:bg-muted'
               }`}
               onClick={() => setExpandedSlide(plan.slideNumber)}
             >
@@ -75,12 +67,7 @@ export function PlanReview() {
 
         {/* Generate Button */}
         <div className="p-4 border-t bg-muted/50">
-          <Button
-            onClick={generateImages}
-            disabled={isLoading}
-            className="w-full"
-            size="lg"
-          >
+          <Button onClick={generateImages} disabled={isLoading} className="w-full" size="lg">
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -160,9 +147,7 @@ export function PlanReview() {
                     <div className="aspect-[9/16] max-w-[200px] mx-auto bg-muted rounded-lg flex items-center justify-center">
                       <div className="text-center p-4">
                         <ImageIcon className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-xs text-muted-foreground">
-                          Image will be generated
-                        </p>
+                        <p className="text-xs text-muted-foreground">Image will be generated</p>
                         {plan.suggestedOverlay && (
                           <p className="mt-4 text-sm font-medium text-muted-foreground">
                             &quot;{plan.suggestedOverlay}&quot;

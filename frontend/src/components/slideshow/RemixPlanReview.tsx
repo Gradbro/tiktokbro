@@ -6,48 +6,68 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSlideshowGenerator } from '@/hooks/useSlideshowGenerator';
 import { useSlideshowContext } from '@/context/SlideshowContext';
-import { Loader2, Search, Check, ImageIcon, Download, ChevronLeft, ChevronRight, Plus, Upload } from 'lucide-react';
+import {
+  Loader2,
+  Search,
+  Check,
+  ImageIcon,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Upload,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CanvasEditor, CanvasEditorRef, TextBox, DEFAULT_TEXT_BOX, PREVIEW_WIDTH, PREVIEW_HEIGHT, EXPORT_WIDTH, EXPORT_HEIGHT } from './CanvasEditor';
+import {
+  CanvasEditor,
+  CanvasEditorRef,
+  TextBox,
+  DEFAULT_TEXT_BOX,
+  PREVIEW_WIDTH,
+  PREVIEW_HEIGHT,
+  EXPORT_WIDTH,
+  EXPORT_HEIGHT,
+} from './CanvasEditor';
 import { TEXT_STYLE_PRESETS, TextStylePreset } from './CanvasEditor/types';
 import { useCanvasRenderer } from './CanvasEditor/useCanvasRenderer';
 import JSZip from 'jszip';
 
 export function RemixPlanReview() {
   const { session, setStage, setSlides } = useSlideshowContext();
-  const { isLoading, editRemixPlan, searchPinterestForSlide, searchPinterestForAll } = useSlideshowGenerator();
-  
+  const { isLoading, editRemixPlan, searchPinterestForSlide, searchPinterestForAll } =
+    useSlideshowGenerator();
+
   // UI State
   const [activeSlide, setActiveSlide] = useState(1);
   const [searchingSlide, setSearchingSlide] = useState<number | null>(null);
-  
+
   // Text boxes per slide
   const [textBoxesMap, setTextBoxesMap] = useState<Map<number, TextBox[]>>(new Map());
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
-  
+
   // Uploaded images per slide
   const [uploadedImagesMap, setUploadedImagesMap] = useState<Map<number, string[]>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Track failed image URLs to hide them from the grid
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
-  
+
   // Refs
   const hasAutoSearched = useRef(false);
   const canvasEditorRefs = useRef<Map<number, CanvasEditorRef>>(new Map());
   const canvasContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // Responsive canvas size
   const [canvasSize, setCanvasSize] = useState({ width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT });
-  
+
   // Canvas renderer for export (can render any slide, not just active one)
   const { render } = useCanvasRenderer({ width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT });
 
   // Derived state
-  const currentPlan = session?.remixPlans?.find(p => p.slideNumber === activeSlide);
-  const originalSlide = session?.tiktokData?.slides.find(s => s.index === activeSlide - 1);
+  const currentPlan = session?.remixPlans?.find((p) => p.slideNumber === activeSlide);
+  const originalSlide = session?.tiktokData?.slides.find((s) => s.index === activeSlide - 1);
   const currentTextBoxes = textBoxesMap.get(activeSlide) || [];
-  const selectedText = currentTextBoxes.find(t => t.id === selectedTextId);
+  const selectedText = currentTextBoxes.find((t) => t.id === selectedTextId);
 
   // Initialize text boxes from remix plan's overlay text
   useEffect(() => {
@@ -58,16 +78,18 @@ export function RemixPlanReview() {
         hasNewlines: currentPlan.newOverlayText.includes('\n'),
         length: currentPlan.newOverlayText.length,
       });
-      
-      setTextBoxesMap(prev => {
+
+      setTextBoxesMap((prev) => {
         const newMap = new Map(prev);
-        newMap.set(activeSlide, [{
-          ...DEFAULT_TEXT_BOX,
-          id: `text-${activeSlide}-1`,
-          text: currentPlan.newOverlayText,
-          x: currentPlan.textPosition?.x || 50,
-          y: currentPlan.textPosition?.y || 85,
-        }]);
+        newMap.set(activeSlide, [
+          {
+            ...DEFAULT_TEXT_BOX,
+            id: `text-${activeSlide}-1`,
+            text: currentPlan.newOverlayText,
+            x: currentPlan.textPosition?.x || 50,
+            y: currentPlan.textPosition?.y || 85,
+          },
+        ]);
         return newMap;
       });
     }
@@ -82,31 +104,31 @@ export function RemixPlanReview() {
   useEffect(() => {
     const updateSize = () => {
       if (!canvasContainerRef.current) return;
-      
+
       const container = canvasContainerRef.current;
       const containerHeight = container.clientHeight - 80; // padding
       const containerWidth = container.clientWidth - 48; // padding
-      
+
       // 9:16 aspect ratio
       const aspectRatio = 9 / 16;
-      
+
       // Calculate max dimensions that fit in container
       let width = containerHeight * aspectRatio;
       let height = containerHeight;
-      
+
       // If too wide, constrain by width instead
       if (width > containerWidth) {
         width = containerWidth;
         height = width / aspectRatio;
       }
-      
+
       // Clamp to reasonable bounds - smaller for 13" screens
       width = Math.max(250, Math.min(400, width));
       height = Math.max(444, Math.min(711, height));
-      
+
       setCanvasSize({ width: Math.round(width), height: Math.round(height) });
     };
-    
+
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
@@ -131,7 +153,7 @@ export function RemixPlanReview() {
     session.remixPlans.forEach((plan) => {
       if (plan.pinterestCandidates?.length && !plan.selectedImageUrl) {
         // Find first image that hasn't failed
-        const validImage = plan.pinterestCandidates.find(c => !failedImages.has(c.imageUrl));
+        const validImage = plan.pinterestCandidates.find((c) => !failedImages.has(c.imageUrl));
         if (validImage) {
           editRemixPlan(plan.slideNumber, { selectedImageUrl: validImage.imageUrl });
         }
@@ -140,21 +162,24 @@ export function RemixPlanReview() {
   }, [session?.remixPlans, editRemixPlan, failedImages]);
 
   // Update text boxes for current slide
-  const handleTextBoxesChange = useCallback((newTextBoxes: TextBox[]) => {
-    setTextBoxesMap(prev => {
-      const newMap = new Map(prev);
-      newMap.set(activeSlide, newTextBoxes);
-      return newMap;
-    });
-    
-    // Sync to remix plan
-    const combinedText = newTextBoxes.map(b => b.text).join('\n');
-    const firstBox = newTextBoxes[0];
-    editRemixPlan(activeSlide, {
-      newOverlayText: combinedText,
-      textPosition: firstBox ? { x: firstBox.x, y: firstBox.y } : undefined,
-    });
-  }, [activeSlide, editRemixPlan]);
+  const handleTextBoxesChange = useCallback(
+    (newTextBoxes: TextBox[]) => {
+      setTextBoxesMap((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(activeSlide, newTextBoxes);
+        return newMap;
+      });
+
+      // Sync to remix plan
+      const combinedText = newTextBoxes.map((b) => b.text).join('\n');
+      const firstBox = newTextBoxes[0];
+      editRemixPlan(activeSlide, {
+        newOverlayText: combinedText,
+        textPosition: firstBox ? { x: firstBox.x, y: firstBox.y } : undefined,
+      });
+    },
+    [activeSlide, editRemixPlan]
+  );
 
   // Handle canvas editor ref
   const setCanvasRef = useCallback((slideNumber: number, ref: CanvasEditorRef | null) => {
@@ -174,20 +199,23 @@ export function RemixPlanReview() {
   }, [activeSlide]);
 
   // Update a specific text box property
-  const updateSelectedTextBox = useCallback((updates: Partial<TextBox>) => {
-    if (!selectedTextId) return;
-    
-    const newTextBoxes = currentTextBoxes.map(box =>
-      box.id === selectedTextId ? { ...box, ...updates } : box
-    );
-    handleTextBoxesChange(newTextBoxes);
-  }, [selectedTextId, currentTextBoxes, handleTextBoxesChange]);
+  const updateSelectedTextBox = useCallback(
+    (updates: Partial<TextBox>) => {
+      if (!selectedTextId) return;
+
+      const newTextBoxes = currentTextBoxes.map((box) =>
+        box.id === selectedTextId ? { ...box, ...updates } : box
+      );
+      handleTextBoxesChange(newTextBoxes);
+    },
+    [selectedTextId, currentTextBoxes, handleTextBoxesChange]
+  );
 
   // Delete selected text box
   const deleteSelectedTextBox = useCallback(() => {
     if (!selectedTextId) return;
-    
-    const newTextBoxes = currentTextBoxes.filter(box => box.id !== selectedTextId);
+
+    const newTextBoxes = currentTextBoxes.filter((box) => box.id !== selectedTextId);
     handleTextBoxesChange(newTextBoxes);
     setSelectedTextId(null);
   }, [selectedTextId, currentTextBoxes, handleTextBoxesChange]);
@@ -195,38 +223,40 @@ export function RemixPlanReview() {
   // Apply style to all text boxes across all slides
   const applyStyleToAll = useCallback(() => {
     if (!selectedText || !session?.remixPlans) return;
-    
+
     const styleUpdates = {
       color: selectedText.color,
       backgroundColor: selectedText.backgroundColor,
     };
-    
+
     // Use functional update to get the most current state
-    setTextBoxesMap(prev => {
+    setTextBoxesMap((prev) => {
       const newMap = new Map<number, TextBox[]>();
-      
+
       // Go through ALL slides, not just ones in the map
       session.remixPlans.forEach((plan) => {
         const slideNumber = plan.slideNumber;
         const existingBoxes = prev.get(slideNumber);
-        
+
         if (existingBoxes && existingBoxes.length > 0) {
           // Update existing boxes
-          const updatedBoxes = existingBoxes.map(box => ({ ...box, ...styleUpdates }));
+          const updatedBoxes = existingBoxes.map((box) => ({ ...box, ...styleUpdates }));
           newMap.set(slideNumber, updatedBoxes);
         } else if (plan.newOverlayText) {
           // Initialize with default text box and apply style
-          newMap.set(slideNumber, [{
-            ...DEFAULT_TEXT_BOX,
-            id: `text-${slideNumber}-1`,
-            text: plan.newOverlayText,
-            x: plan.textPosition?.x || 50,
-            y: plan.textPosition?.y || 85,
-            ...styleUpdates,
-          }]);
+          newMap.set(slideNumber, [
+            {
+              ...DEFAULT_TEXT_BOX,
+              id: `text-${slideNumber}-1`,
+              text: plan.newOverlayText,
+              x: plan.textPosition?.x || 50,
+              y: plan.textPosition?.y || 85,
+              ...styleUpdates,
+            },
+          ]);
         }
       });
-      
+
       return newMap;
     });
   }, [selectedText, session?.remixPlans]);
@@ -239,31 +269,34 @@ export function RemixPlanReview() {
   };
 
   // Handle image upload
-  const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    Array.from(files).forEach(file => {
-      if (!file.type.startsWith('image/')) return;
-      
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        if (dataUrl) {
-          setUploadedImagesMap(prev => {
-            const newMap = new Map(prev);
-            const existing = newMap.get(activeSlide) || [];
-            newMap.set(activeSlide, [...existing, dataUrl]);
-            return newMap;
-          });
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-    
-    // Reset input so same file can be uploaded again
-    e.target.value = '';
-  }, [activeSlide]);
+  const handleUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      Array.from(files).forEach((file) => {
+        if (!file.type.startsWith('image/')) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const dataUrl = event.target?.result as string;
+          if (dataUrl) {
+            setUploadedImagesMap((prev) => {
+              const newMap = new Map(prev);
+              const existing = newMap.get(activeSlide) || [];
+              newMap.set(activeSlide, [...existing, dataUrl]);
+              return newMap;
+            });
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Reset input so same file can be uploaded again
+      e.target.value = '';
+    },
+    [activeSlide]
+  );
 
   // Select Pinterest image
   const handleSelectImage = (slideNumber: number, imageUrl: string) => {
@@ -271,18 +304,21 @@ export function RemixPlanReview() {
   };
 
   // Handle image load error - hide failed images silently
-  const handleImageError = useCallback((imageUrl: string) => {
-    setFailedImages(prev => {
-      const next = new Set(prev);
-      next.add(imageUrl);
-      return next;
-    });
-    
-    // If this was the selected image, deselect it
-    if (currentPlan?.selectedImageUrl === imageUrl) {
-      editRemixPlan(activeSlide, { selectedImageUrl: undefined });
-    }
-  }, [currentPlan?.selectedImageUrl, editRemixPlan, activeSlide]);
+  const handleImageError = useCallback(
+    (imageUrl: string) => {
+      setFailedImages((prev) => {
+        const next = new Set(prev);
+        next.add(imageUrl);
+        return next;
+      });
+
+      // If this was the selected image, deselect it
+      if (currentPlan?.selectedImageUrl === imageUrl) {
+        editRemixPlan(activeSlide, { selectedImageUrl: undefined });
+      }
+    },
+    [currentPlan?.selectedImageUrl, editRemixPlan, activeSlide]
+  );
 
   // Download all slides as a zip file
   const handleDownloadAll = async () => {
@@ -303,13 +339,15 @@ export function RemixPlanReview() {
       if (!slideTextBoxes || slideTextBoxes.length === 0) {
         // Slide was never visited - create text box from plan data
         if (plan.newOverlayText) {
-          slideTextBoxes = [{
-            ...DEFAULT_TEXT_BOX,
-            id: `text-${plan.slideNumber}-1`,
-            text: plan.newOverlayText,
-            x: plan.textPosition?.x || 50,
-            y: plan.textPosition?.y || 85,
-          }];
+          slideTextBoxes = [
+            {
+              ...DEFAULT_TEXT_BOX,
+              id: `text-${plan.slideNumber}-1`,
+              text: plan.newOverlayText,
+              x: plan.textPosition?.x || 50,
+              y: plan.textPosition?.y || 85,
+            },
+          ];
         } else {
           slideTextBoxes = [];
         }
@@ -317,7 +355,13 @@ export function RemixPlanReview() {
 
       try {
         // Render this slide to the offscreen canvas
-        await render(offscreenCanvas, plan.selectedImageUrl, slideTextBoxes, EXPORT_WIDTH, EXPORT_HEIGHT);
+        await render(
+          offscreenCanvas,
+          plan.selectedImageUrl,
+          slideTextBoxes,
+          EXPORT_WIDTH,
+          EXPORT_HEIGHT
+        );
 
         // Convert to blob
         const blob = await new Promise<Blob | null>((resolve) => {
@@ -346,7 +390,7 @@ export function RemixPlanReview() {
     // Also update slides state for the workflow
     const slides = session.remixPlans.map((plan) => {
       const boxes = textBoxesMap.get(plan.slideNumber) || [];
-      const combinedText = boxes.map(b => b.text).join('\n');
+      const combinedText = boxes.map((b) => b.text).join('\n');
       const firstBox = boxes[0];
 
       return {
@@ -359,12 +403,15 @@ export function RemixPlanReview() {
         },
         imageData: plan.selectedImageUrl,
         status: 'complete' as const,
-        textOverlay: (combinedText || plan.newOverlayText) ? {
-          text: combinedText || plan.newOverlayText,
-          size: 'medium' as const,
-          color: firstBox?.color || '#ffffff',
-          position: firstBox ? { x: firstBox.x, y: firstBox.y } : { x: 50, y: 80 },
-        } : undefined,
+        textOverlay:
+          combinedText || plan.newOverlayText
+            ? {
+                text: combinedText || plan.newOverlayText,
+                size: 'medium' as const,
+                color: firstBox?.color || '#ffffff',
+                position: firstBox ? { x: firstBox.x, y: firstBox.y } : { x: 50, y: 80 },
+              }
+            : undefined,
       };
     });
 
@@ -381,7 +428,7 @@ export function RemixPlanReview() {
     );
   }
 
-  const selectedCount = session.remixPlans.filter(p => p.selectedImageUrl).length;
+  const selectedCount = session.remixPlans.filter((p) => p.selectedImageUrl).length;
   const totalCount = session.remixPlans.length;
 
   return (
@@ -390,7 +437,9 @@ export function RemixPlanReview() {
       <div className="border-b bg-muted/30 px-3 py-1 shrink-0">
         <div className="flex items-center gap-1.5 overflow-x-auto">
           {session.remixPlans.map((plan) => {
-            const original = session.tiktokData?.slides.find(s => s.index === plan.slideNumber - 1);
+            const original = session.tiktokData?.slides.find(
+              (s) => s.index === plan.slideNumber - 1
+            );
             const isActive = plan.slideNumber === activeSlide;
             const hasSelection = !!plan.selectedImageUrl;
 
@@ -400,13 +449,19 @@ export function RemixPlanReview() {
                 onClick={() => setActiveSlide(plan.slideNumber)}
                 className={cn(
                   'relative shrink-0 w-9 h-12 rounded overflow-hidden border-2 transition-all',
-                  isActive ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-muted-foreground/30',
+                  isActive
+                    ? 'border-primary ring-2 ring-primary/20'
+                    : 'border-transparent hover:border-muted-foreground/30',
                   !hasSelection && !isActive && 'opacity-50'
                 )}
               >
                 {original?.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={original.imageUrl} alt={`Slide ${plan.slideNumber}`} className="w-full h-full object-cover" />
+                  <img
+                    src={original.imageUrl}
+                    alt={`Slide ${plan.slideNumber}`}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full bg-muted flex items-center justify-center">
                     <ImageIcon className="h-2 w-2 text-muted-foreground" />
@@ -444,9 +499,15 @@ export function RemixPlanReview() {
                 size="icon"
                 className="h-8 w-8 shrink-0"
                 onClick={() => handleSearch(activeSlide, currentPlan.pinterestQuery)}
-                disabled={searchingSlide === activeSlide || !currentPlan.pinterestQuery || isLoading}
+                disabled={
+                  searchingSlide === activeSlide || !currentPlan.pinterestQuery || isLoading
+                }
               >
-                {searchingSlide === activeSlide ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                {searchingSlide === activeSlide ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -465,25 +526,34 @@ export function RemixPlanReview() {
                 onChange={handleUpload}
               />
             </div>
-            
+
             {/* Images Grid */}
             <div className="flex-1 overflow-y-auto p-2">
               {(() => {
                 const uploadedImages = uploadedImagesMap.get(activeSlide) || [];
                 const pinterestImages = currentPlan.pinterestCandidates || [];
-                
+
                 // Filter out images that failed to load
                 const allImages = [
-                  ...uploadedImages.map((url, i) => ({ url, type: 'upload' as const, key: `upload-${i}` })),
+                  ...uploadedImages.map((url, i) => ({
+                    url,
+                    type: 'upload' as const,
+                    key: `upload-${i}`,
+                  })),
                   ...pinterestImages
-                    .filter(c => !failedImages.has(c.imageUrl))
-                    .map((c, i) => ({ url: c.imageUrl, type: 'pinterest' as const, key: `pinterest-${i}` })),
+                    .filter((c) => !failedImages.has(c.imageUrl))
+                    .map((c, i) => ({
+                      url: c.imageUrl,
+                      type: 'pinterest' as const,
+                      key: `pinterest-${i}`,
+                    })),
                 ];
-                
+
                 // Check if we had Pinterest results but all failed
-                const allPinterestFailed = pinterestImages.length > 0 && 
-                  pinterestImages.every(c => failedImages.has(c.imageUrl));
-                
+                const allPinterestFailed =
+                  pinterestImages.length > 0 &&
+                  pinterestImages.every((c) => failedImages.has(c.imageUrl));
+
                 if (allImages.length > 0) {
                   return (
                     <div className="grid grid-cols-3 gap-1.5">
@@ -499,9 +569,9 @@ export function RemixPlanReview() {
                           )}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img 
-                            src={img.url} 
-                            alt="Option" 
+                          <img
+                            src={img.url}
+                            alt="Option"
                             className="w-full h-full object-cover"
                             onError={() => handleImageError(img.url)}
                           />
@@ -522,20 +592,23 @@ export function RemixPlanReview() {
                     </div>
                   );
                 }
-                
+
                 return (
                   <div className="flex items-center justify-center h-full bg-muted/30 rounded-xl">
                     <div className="text-center text-muted-foreground p-4">
                       {isLoading || searchingSlide === activeSlide ? (
-                        <><Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin" /><p className="text-sm">Searching...</p></>
+                        <>
+                          <Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin" />
+                          <p className="text-sm">Searching...</p>
+                        </>
                       ) : allPinterestFailed ? (
                         <>
                           <Search className="h-6 w-6 mx-auto mb-2 opacity-50" />
                           <p className="text-sm font-medium">No compatible images found</p>
                           <p className="text-xs mt-1 opacity-70">Try a different search query</p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="mt-2"
                             onClick={() => fileInputRef.current?.click()}
                           >
@@ -547,9 +620,9 @@ export function RemixPlanReview() {
                         <>
                           <Upload className="h-6 w-6 mx-auto mb-2 opacity-50" />
                           <p className="text-sm">Search Pinterest or upload images</p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="mt-2"
                             onClick={() => fileInputRef.current?.click()}
                           >
@@ -563,22 +636,26 @@ export function RemixPlanReview() {
                 );
               })()}
             </div>
-            
+
             {/* Original Reference - Bottom */}
             {originalSlide?.imageUrl && (
               <div className="p-2 border-t shrink-0">
                 <Label className="text-xs text-muted-foreground mb-1 block">Original</Label>
                 <div className="aspect-9/16 w-full max-w-[120px] rounded-lg overflow-hidden mx-auto">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={originalSlide.imageUrl} alt="Original" className="w-full h-full object-cover" />
+                  <img
+                    src={originalSlide.imageUrl}
+                    alt="Original"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
             )}
           </div>
 
           {/* Center: Canvas Editor */}
-          <div 
-            ref={canvasContainerRef} 
+          <div
+            ref={canvasContainerRef}
             className="flex-1 flex items-center justify-center bg-zinc-900 p-3"
             onClick={(e) => {
               // Deselect when clicking on the background (not on canvas)
@@ -592,7 +669,7 @@ export function RemixPlanReview() {
               <div className="absolute -top-6 left-0 px-2 py-0.5 bg-black/60 text-white text-xs rounded">
                 Slide {activeSlide}
               </div>
-              
+
               <div className="rounded-xl overflow-hidden shadow-2xl">
                 <CanvasEditor
                   ref={(ref) => setCanvasRef(activeSlide, ref)}
@@ -637,34 +714,40 @@ export function RemixPlanReview() {
                 <div>
                   <Label className="text-xs text-muted-foreground">Style</Label>
                   <div className="mt-1 grid grid-cols-2 gap-1">
-                    {([
-                      { key: 'white', label: 'White' },
-                      { key: 'black', label: 'Black' },
-                      { key: 'white-on-black', label: 'W/B' },
-                      { key: 'black-on-white', label: 'B/W' },
-                    ] as { key: TextStylePreset; label: string }[]).map(({ key, label }) => {
+                    {(
+                      [
+                        { key: 'white', label: 'White' },
+                        { key: 'black', label: 'Black' },
+                        { key: 'white-on-black', label: 'W/B' },
+                        { key: 'black-on-white', label: 'B/W' },
+                      ] as { key: TextStylePreset; label: string }[]
+                    ).map(({ key, label }) => {
                       const preset = TEXT_STYLE_PRESETS[key];
-                      const isSelected = selectedText.color === preset.color && 
-                                        selectedText.backgroundColor === preset.backgroundColor;
+                      const isSelected =
+                        selectedText.color === preset.color &&
+                        selectedText.backgroundColor === preset.backgroundColor;
                       return (
                         <button
                           key={key}
-                          onClick={() => updateSelectedTextBox({ 
-                            color: preset.color, 
-                            backgroundColor: preset.backgroundColor 
-                          })}
+                          onClick={() =>
+                            updateSelectedTextBox({
+                              color: preset.color,
+                              backgroundColor: preset.backgroundColor,
+                            })
+                          }
                           className={cn(
                             'px-1.5 py-1 rounded text-xs font-medium transition-all border',
                             isSelected ? 'ring-2 ring-blue-500 ring-offset-1' : '',
-                            preset.backgroundColor 
-                              ? 'border-muted' 
-                              : key === 'white' 
-                                ? 'border-muted bg-zinc-700' 
+                            preset.backgroundColor
+                              ? 'border-muted'
+                              : key === 'white'
+                                ? 'border-muted bg-zinc-700'
                                 : 'border-muted bg-zinc-200'
                           )}
                           style={{
                             color: preset.color,
-                            backgroundColor: preset.backgroundColor || (key === 'white' ? '#3f3f46' : '#e4e4e7'),
+                            backgroundColor:
+                              preset.backgroundColor || (key === 'white' ? '#3f3f46' : '#e4e4e7'),
                           }}
                         >
                           {label}
@@ -672,10 +755,10 @@ export function RemixPlanReview() {
                       );
                     })}
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={applyStyleToAll} 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={applyStyleToAll}
                     className="w-full mt-1 h-6 text-xs"
                   >
                     Apply to All Slides
@@ -706,7 +789,12 @@ export function RemixPlanReview() {
                   </div>
                 </div>
 
-                <Button variant="destructive" size="sm" onClick={deleteSelectedTextBox} className="w-full h-7 text-xs">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={deleteSelectedTextBox}
+                  className="w-full h-7 text-xs"
+                >
                   Delete
                 </Button>
               </div>
@@ -718,11 +806,23 @@ export function RemixPlanReview() {
       {/* Footer */}
       <div className="px-3 py-2 border-t bg-card flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setActiveSlide(prev => prev - 1)} disabled={activeSlide === 1}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setActiveSlide((prev) => prev - 1)}
+            disabled={activeSlide === 1}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm text-muted-foreground px-2">{activeSlide} / {totalCount}</span>
-          <Button variant="outline" size="sm" onClick={() => setActiveSlide(prev => prev + 1)} disabled={activeSlide === totalCount}>
+          <span className="text-sm text-muted-foreground px-2">
+            {activeSlide} / {totalCount}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setActiveSlide((prev) => prev + 1)}
+            disabled={activeSlide === totalCount}
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

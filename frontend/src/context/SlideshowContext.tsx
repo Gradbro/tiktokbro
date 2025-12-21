@@ -30,11 +30,17 @@ type SlideshowAction =
   | { type: 'UPDATE_TEXT_OVERLAY'; payload: { id: string; overlay: TextOverlay } }
   | { type: 'RESET' }
   // TikTok import actions
-  | { type: 'INIT_IMPORT_SESSION'; payload: { tiktokData: TikTokScrapeResult; config: ImageConfig } }
+  | {
+      type: 'INIT_IMPORT_SESSION';
+      payload: { tiktokData: TikTokScrapeResult; config: ImageConfig };
+    }
   | { type: 'SET_SLIDE_ANALYSES'; payload: SlideAnalysis[] }
   | { type: 'SET_REMIX_PLANS'; payload: RemixPlan[] }
   | { type: 'UPDATE_REMIX_PLAN'; payload: { slideNumber: number; updates: Partial<RemixPlan> } }
-  | { type: 'SET_PINTEREST_CANDIDATES'; payload: { slideNumber: number; candidates: PinterestCandidate[] } };
+  | {
+      type: 'SET_PINTEREST_CANDIDATES';
+      payload: { slideNumber: number; candidates: PinterestCandidate[] };
+    };
 
 const initialState: SlideshowState = {
   session: null,
@@ -162,9 +168,7 @@ function slideshowReducer(state: SlideshowState, action: SlideshowAction): Slide
         session: {
           ...state.session,
           slides: state.session.slides.map((slide) =>
-            slide.id === action.payload.id
-              ? { ...slide, ...action.payload.updates }
-              : slide
+            slide.id === action.payload.id ? { ...slide, ...action.payload.updates } : slide
           ),
         },
       };
@@ -223,28 +227,21 @@ export function SlideshowProvider({ children }: { children: ReactNode }) {
     setPlans: (plans) => dispatch({ type: 'SET_PLANS', payload: plans }),
     updatePlan: (slideNumber, updates) =>
       dispatch({ type: 'UPDATE_PLAN', payload: { slideNumber, updates } }),
-    setSlideAnalyses: (analyses) =>
-      dispatch({ type: 'SET_SLIDE_ANALYSES', payload: analyses }),
-    setRemixPlans: (plans) =>
-      dispatch({ type: 'SET_REMIX_PLANS', payload: plans }),
+    setSlideAnalyses: (analyses) => dispatch({ type: 'SET_SLIDE_ANALYSES', payload: analyses }),
+    setRemixPlans: (plans) => dispatch({ type: 'SET_REMIX_PLANS', payload: plans }),
     updateRemixPlan: (slideNumber, updates) =>
       dispatch({ type: 'UPDATE_REMIX_PLAN', payload: { slideNumber, updates } }),
     setPinterestCandidates: (slideNumber, candidates) =>
       dispatch({ type: 'SET_PINTEREST_CANDIDATES', payload: { slideNumber, candidates } }),
     initSlides: (plans) => dispatch({ type: 'INIT_SLIDES', payload: plans }),
     setSlides: (slides) => dispatch({ type: 'SET_SLIDES', payload: slides }),
-    updateSlide: (id, updates) =>
-      dispatch({ type: 'UPDATE_SLIDE', payload: { id, updates } }),
+    updateSlide: (id, updates) => dispatch({ type: 'UPDATE_SLIDE', payload: { id, updates } }),
     updateTextOverlay: (id, overlay) =>
       dispatch({ type: 'UPDATE_TEXT_OVERLAY', payload: { id, overlay } }),
     reset: () => dispatch({ type: 'RESET' }),
   };
 
-  return (
-    <SlideshowContext.Provider value={value}>
-      {children}
-    </SlideshowContext.Provider>
-  );
+  return <SlideshowContext.Provider value={value}>{children}</SlideshowContext.Provider>;
 }
 
 export function useSlideshowContext() {

@@ -34,18 +34,14 @@ export function SlidePlanReview() {
         {session.plans.map((plan) => (
           <Card key={plan.slideNumber}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
-                Slide {plan.slideNumber}
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Slide {plan.slideNumber}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-1">
                 <Label className="text-xs">Image Prompt</Label>
                 <Textarea
                   value={plan.imagePrompt}
-                  onChange={(e) =>
-                    updatePlan(plan.slideNumber, { imagePrompt: e.target.value })
-                  }
+                  onChange={(e) => updatePlan(plan.slideNumber, { imagePrompt: e.target.value })}
                   placeholder="Describe the image you want"
                   className="min-h-[80px] resize-none text-sm"
                 />
@@ -65,12 +61,7 @@ export function SlidePlanReview() {
         ))}
       </div>
 
-      <Button
-        onClick={generateImages}
-        disabled={isLoading}
-        className="w-full"
-        size="lg"
-      >
+      <Button onClick={generateImages} disabled={isLoading} className="w-full" size="lg">
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

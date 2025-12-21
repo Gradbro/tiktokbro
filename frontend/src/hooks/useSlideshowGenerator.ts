@@ -2,10 +2,10 @@
 
 import { useState, useCallback } from 'react';
 import { useSlideshowContext } from '@/context/SlideshowContext';
-import { 
-  generatePlan, 
-  generateImage, 
-  scrapeTikTok, 
+import {
+  generatePlan,
+  generateImage,
+  scrapeTikTok,
   analyzeTikTokSlides,
   searchPinterest,
 } from '@/lib/api-client';
@@ -59,11 +59,9 @@ export function useSlideshowGenerator() {
 
   const generateImages = useCallback(async () => {
     if (!session?.plans || !session.config) {
-      console.log('No plans or config available');
       return;
     }
 
-    console.log('Starting image generation for', session.plans.length, 'slides');
     setIsLoading(true);
     setStage('generating');
 
@@ -186,7 +184,7 @@ export function useSlideshowGenerator() {
         }
 
         const tiktokData = scrapeResponse.data;
-        
+
         if (tiktokData.slides.length === 0) {
           throw new Error('No slides found in this TikTok post');
         }
@@ -208,15 +206,18 @@ export function useSlideshowGenerator() {
         // Step 3: Auto-create remix plans using imageDescription as Pinterest query
         const autoRemixPlans = analyses.map((analysis, index) => ({
           slideNumber: index + 1,
-          pinterestQuery: analysis.imageDescription || `${analysis.backgroundStyle} ${analysis.backgroundType}`,
+          pinterestQuery:
+            analysis.imageDescription || `${analysis.backgroundStyle} ${analysis.backgroundType}`,
           newOverlayText: analysis.extractedText || '',
           layoutNotes: `Text at ${analysis.textPlacement}`,
         }));
 
         setRemixPlans(autoRemixPlans);
         setStage('remix-review'); // Go directly to image selection
-        
-        toast.success(`Imported ${tiktokData.slides.length} slides! Select images for your slideshow.`);
+
+        toast.success(
+          `Imported ${tiktokData.slides.length} slides! Select images for your slideshow.`
+        );
       } catch (error) {
         console.error('Error importing from TikTok:', error);
         toast.error(error instanceof Error ? error.message : 'Failed to import TikTok');
@@ -267,7 +268,7 @@ export function useSlideshowGenerator() {
       setIsLoading(true);
       try {
         toast.info('Searching Pinterest for all slides...');
-        
+
         for (const plan of session.remixPlans) {
           await searchPinterestForSlide(plan.slideNumber, plan.pinterestQuery, limit);
         }

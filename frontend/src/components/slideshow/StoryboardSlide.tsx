@@ -35,9 +35,7 @@ export function StoryboardSlide({ slide, isSelected, onClick }: StoryboardSlideP
         'relative shrink-0 cursor-pointer transition-all duration-200',
         'rounded-xl overflow-hidden',
         'hover:scale-105 hover:shadow-lg',
-        isSelected
-          ? 'ring-2 ring-primary ring-offset-2 scale-105 shadow-lg'
-          : 'ring-1 ring-border'
+        isSelected ? 'ring-2 ring-primary ring-offset-2 scale-105 shadow-lg' : 'ring-1 ring-border'
       )}
       onClick={onClick}
     >

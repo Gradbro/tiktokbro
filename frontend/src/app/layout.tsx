@@ -1,18 +1,18 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { SlideshowProvider } from "@/context/SlideshowContext";
-import { Toaster } from "@/components/ui/sonner";
-import { AppShell } from "@/components/layout/AppShell";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { SlideshowProvider } from '@/context/SlideshowContext';
+import { Toaster } from '@/components/ui/sonner';
+import { AppShell } from '@/components/layout/AppShell';
 
 const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
+  subsets: ['latin'],
+  variable: '--font-inter',
 });
 
 export const metadata: Metadata = {
-  title: "TikTokBro - Creator Studio",
-  description: "Generate viral content with AI",
+  title: 'TikTokBro - Creator Studio',
+  description: 'Generate viral content with AI',
 };
 
 export default function RootLayout({

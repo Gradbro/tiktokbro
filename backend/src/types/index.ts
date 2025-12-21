@@ -1,4 +1,13 @@
-export type WorkflowStage = 'prompt' | 'planning' | 'review' | 'generating' | 'editing' | 'complete' | 'importing' | 'analyzing' | 'remix-review';
+export type WorkflowStage =
+  | 'prompt'
+  | 'planning'
+  | 'review'
+  | 'generating'
+  | 'editing'
+  | 'complete'
+  | 'importing'
+  | 'analyzing'
+  | 'remix-review';
 
 export interface SlidePlan {
   slideNumber: number;

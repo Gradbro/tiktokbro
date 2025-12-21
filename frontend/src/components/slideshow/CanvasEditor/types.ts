@@ -53,9 +53,12 @@ export const DEFAULT_TEXT_BOX: Omit<TextBox, 'id'> = {
 // Text style presets
 export type TextStylePreset = 'white' | 'black' | 'white-on-black' | 'black-on-white';
 
-export const TEXT_STYLE_PRESETS: Record<TextStylePreset, { color: string; backgroundColor: string | null }> = {
-  'white': { color: '#ffffff', backgroundColor: null },
-  'black': { color: '#000000', backgroundColor: null },
+export const TEXT_STYLE_PRESETS: Record<
+  TextStylePreset,
+  { color: string; backgroundColor: string | null }
+> = {
+  white: { color: '#ffffff', backgroundColor: null },
+  black: { color: '#000000', backgroundColor: null },
   'white-on-black': { color: '#ffffff', backgroundColor: '#000000' },
   'black-on-white': { color: '#000000', backgroundColor: '#ffffff' },
 };

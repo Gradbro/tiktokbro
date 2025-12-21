@@ -17,9 +17,7 @@ export async function generateSlidePlan(prompt: string, slideCount: number): Pro
 
   const response = await ai.models.generateContent({
     model: TEXT_MODEL,
-    contents: [
-      { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }
-    ],
+    contents: [{ role: 'user', parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }],
   });
 
   const text = response.text;
@@ -53,7 +51,7 @@ export async function generateSlidePlan(prompt: string, slideCount: number): Pro
       imagePrompt: plan.imagePrompt || '',
       suggestedOverlay: plan.suggestedOverlay || '',
     }));
-  } catch (parseError) {
+  } catch {
     console.error('Failed to parse Gemini response:', text);
     throw new Error('Failed to parse slide plan from AI response');
   }
@@ -69,20 +67,21 @@ export async function generateRemixPlan(
 ): Promise<RemixPlan[]> {
   const ai = getGeminiClient();
 
-  const slideDescriptions = originalAnalyses.map((a, i) => 
-    `Slide ${i + 1}:
+  const slideDescriptions = originalAnalyses
+    .map(
+      (a, i) =>
+        `Slide ${i + 1}:
   - imageDescription: "${a.imageDescription}"
   - Background: ${a.backgroundType} (${a.backgroundStyle})
   - Text: "${a.extractedText}" at ${a.textPlacement}`
-  ).join('\n\n');
+    )
+    .join('\n\n');
 
   const systemPrompt = getRemixPlanPrompt(slideDescriptions, userPrompt, originalAnalyses.length);
 
   const response = await ai.models.generateContent({
     model: TEXT_MODEL,
-    contents: [
-      { role: 'user', parts: [{ text: systemPrompt }] }
-    ],
+    contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
   });
 
   const text = response.text;

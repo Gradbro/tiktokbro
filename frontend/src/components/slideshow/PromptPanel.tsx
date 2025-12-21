@@ -22,7 +22,8 @@ export function PromptPanel() {
     importFromTikTok(tiktokUrl, config);
   };
 
-  const isDisabled = isLoading || (session?.stage && !['prompt', 'importing', 'analyzing'].includes(session.stage));
+  const isDisabled =
+    isLoading || (session?.stage && !['prompt', 'importing', 'analyzing'].includes(session.stage));
 
   // TikTok URL input
   return (
@@ -30,9 +31,7 @@ export function PromptPanel() {
       {/* Header */}
       <div className="px-6 py-5 border-b">
         <h1 className="text-lg font-semibold text-foreground">Import TikTok</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Import a Photo Mode slideshow to remix
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">Import a Photo Mode slideshow to remix</p>
       </div>
 
       {/* Content */}
@@ -49,9 +48,7 @@ export function PromptPanel() {
             onChange={(e) => setTiktokUrl(e.target.value)}
             disabled={isDisabled}
           />
-          <p className="text-xs text-muted-foreground">
-            Paste a TikTok Photo Mode slideshow URL
-          </p>
+          <p className="text-xs text-muted-foreground">Paste a TikTok Photo Mode slideshow URL</p>
         </div>
 
         {/* What happens */}

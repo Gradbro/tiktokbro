@@ -35,10 +35,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              render={<Link href="/" />}
-            >
+            <SidebarMenuButton size="lg" render={<Link href="/" />}>
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Sparkles className="size-4" />
               </div>
@@ -56,8 +53,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     render={<Link href={item.url} />}
                     isActive={
-                      pathname === item.url ||
-                      (item.url === '/slideshows' && pathname === '/')
+                      pathname === item.url || (item.url === '/slideshows' && pathname === '/')
                     }
                   >
                     <item.icon className="size-4" />
