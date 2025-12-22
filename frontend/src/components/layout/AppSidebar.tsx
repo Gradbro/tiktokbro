@@ -12,7 +12,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
+import { ProductSettings } from './ProductSettings';
 
 const items = [
   {
@@ -67,6 +69,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-0">
+        <ProductSettings />
+      </SidebarFooter>
     </Sidebar>
   );
 }

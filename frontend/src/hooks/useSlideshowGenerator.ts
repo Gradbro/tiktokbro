@@ -8,6 +8,7 @@ import {
   scrapeTikTok,
   analyzeTikTokSlides,
   searchPinterest,
+  generateRemixPlan,
 } from '@/lib/api-client';
 import { ImageConfig, GeneratedSlide, RemixPlan, PinterestCandidate } from '@/types';
 import { toast } from 'sonner';
@@ -27,6 +28,7 @@ export function useSlideshowGenerator() {
     setPinterestCandidates,
   } = useSlideshowContext();
 
+  const productContext = session?.productContext;
   const [isLoading, setIsLoading] = useState(false);
 
   const createPlan = useCallback(
@@ -169,10 +171,11 @@ export function useSlideshowGenerator() {
   // === TikTok Import Functions ===
 
   /**
-   * Import a TikTok slideshow: scrape + analyze + auto-create remix plans from imageDescription
+   * Import a TikTok slideshow: scrape + analyze + optionally remix with AI
+   * @param remix - If true, AI rewrites text for product context. If false, keeps original text.
    */
   const importFromTikTok = useCallback(
-    async (tiktokUrl: string, config: ImageConfig) => {
+    async (tiktokUrl: string, config: ImageConfig, remix: boolean = true) => {
       setIsLoading(true);
       try {
         // Step 1: Scrape TikTok
@@ -203,20 +206,75 @@ export function useSlideshowGenerator() {
         const analyses = analyzeResponse.data.analyses;
         setSlideAnalyses(analyses);
 
-        // Step 3: Auto-create remix plans using imageDescription as Pinterest query
-        const autoRemixPlans = analyses.map((analysis, index) => ({
-          slideNumber: index + 1,
-          pinterestQuery:
-            analysis.imageDescription || `${analysis.backgroundStyle} ${analysis.backgroundType}`,
-          newOverlayText: analysis.extractedText || '',
-          layoutNotes: `Text at ${analysis.textPlacement}`,
-        }));
+        let finalPlans;
 
-        setRemixPlans(autoRemixPlans);
-        setStage('remix-review'); // Go directly to image selection
+        if (remix) {
+          // REMIX MODE: AI rewrites text for product context
+          let effectiveProductContext = productContext;
+          if (!effectiveProductContext) {
+            try {
+              const { getSettings } = await import('@/lib/api-client');
+              const settingsRes = await getSettings();
+              if (settingsRes.success && settingsRes.data?.productContext) {
+                effectiveProductContext = settingsRes.data.productContext;
+              }
+            } catch {
+              // Ignore - proceed without product context
+            }
+          }
+
+          toast.info('AI is remixing content for your product...');
+          const remixResponse = await generateRemixPlan({
+            analyses,
+            userPrompt: 'Create a remix with similar style',
+            productContext: effectiveProductContext || undefined,
+          });
+
+          if (remixResponse.success && remixResponse.plans) {
+            finalPlans = remixResponse.plans;
+          } else {
+            // Fallback to copy mode if AI fails
+            console.warn('AI remix failed, falling back to copy mode');
+            finalPlans = analyses.map((analysis, index) => ({
+              slideNumber: index + 1,
+              pinterestQuery:
+                analysis.imageDescription ||
+                `${analysis.backgroundStyle} ${analysis.backgroundType}`,
+              newOverlayText: analysis.extractedText || '',
+              layoutNotes: `Text at ${analysis.textPlacement}`,
+            }));
+          }
+        } else {
+          // COPY MODE: Keep original text exactly as-is
+          toast.info('Preparing slides with original content...');
+          finalPlans = analyses.map((analysis, index) => ({
+            slideNumber: index + 1,
+            pinterestQuery:
+              analysis.imageDescription || `${analysis.backgroundStyle} ${analysis.backgroundType}`,
+            newOverlayText: analysis.extractedText || '',
+            layoutNotes: `Text at ${analysis.textPlacement}`,
+          }));
+        }
+
+        // Ensure at least 1 slide
+        if (finalPlans.length === 0) {
+          finalPlans = [
+            {
+              slideNumber: 1,
+              pinterestQuery: 'aesthetic background',
+              newOverlayText: '',
+              layoutNotes: 'Center text',
+            },
+          ];
+        }
+
+        setRemixPlans(finalPlans);
+        setStage('remix-review');
 
         toast.success(
-          `Imported ${tiktokData.slides.length} slides! Select images for your slideshow.`
+          remix
+            ? `Imported ${tiktokData.slides.length} slides! AI remixed content for your product.`
+            : `Imported ${tiktokData.slides.length} slides with original content.`
         );
       } catch (error) {
         console.error('Error importing from TikTok:', error);
@@ -226,7 +284,7 @@ export function useSlideshowGenerator() {
         setIsLoading(false);
       }
     },
-    [initImportSession, setSlideAnalyses, setRemixPlans, setStage]
+    [initImportSession, setSlideAnalyses, setRemixPlans, setStage, productContext]
   );
 
   /**

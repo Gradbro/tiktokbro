@@ -193,6 +193,7 @@ export interface ISlideshowSession extends Document {
       textAlign: 'left' | 'center' | 'right';
     };
   }>;
+  productContext?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -223,6 +224,7 @@ const SlideshowSessionSchema = new Schema<ISlideshowSession>(
     tiktokData: { type: TikTokScrapeResultSchema },
     slideAnalyses: [SlideAnalysisSchema],
     remixPlans: [RemixPlanSchema],
+    productContext: { type: String },
   },
   {
     timestamps: true,

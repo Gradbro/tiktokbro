@@ -103,6 +103,8 @@ export interface SlideshowSession {
   tiktokData?: TikTokScrapeResult;
   slideAnalyses?: SlideAnalysis[];
   remixPlans?: RemixPlan[];
+  // Product context for AI to customize overlay text
+  productContext?: string;
 }
 
 // API types
@@ -152,6 +154,7 @@ export interface TikTokAnalyzeResponse {
 export interface RemixPlanRequest {
   analyses: SlideAnalysis[];
   userPrompt: string;
+  productContext?: string;
 }
 
 export interface RemixPlanResponse {

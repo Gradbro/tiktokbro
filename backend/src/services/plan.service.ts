@@ -9,6 +9,43 @@ export interface RemixPlan {
   layoutNotes: string;
 }
 
+/**
+ * Fix literal newlines inside JSON strings from LLM responses
+ * LLMs often return JSON with actual line breaks inside string values
+ */
+function fixJsonNewlines(jsonStr: string): string {
+  let fixed = '';
+  let inString = false;
+  let escaped = false;
+  for (const char of jsonStr) {
+    if (escaped) {
+      fixed += char;
+      escaped = false;
+      continue;
+    }
+    if (char === '\\') {
+      fixed += char;
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      fixed += char;
+      continue;
+    }
+    if (inString && char === '\n') {
+      fixed += '\\n';
+      continue;
+    }
+    if (inString && char === '\r') {
+      fixed += '\\r';
+      continue;
+    }
+    fixed += char;
+  }
+  return fixed;
+}
+
 export async function generateSlidePlan(prompt: string, slideCount: number): Promise<SlidePlan[]> {
   const ai = getGeminiClient();
 
@@ -38,6 +75,9 @@ export async function generateSlidePlan(prompt: string, slideCount: number): Pro
     }
   }
 
+  // Fix literal newlines inside JSON strings
+  jsonStr = fixJsonNewlines(jsonStr);
+
   try {
     const plans: SlidePlan[] = JSON.parse(jsonStr);
 
@@ -63,7 +103,8 @@ export async function generateSlidePlan(prompt: string, slideCount: number): Pro
  */
 export async function generateRemixPlan(
   originalAnalyses: (SlideAnalysis & { index: number })[],
-  userPrompt: string
+  userPrompt: string,
+  productContext?: string
 ): Promise<RemixPlan[]> {
   const ai = getGeminiClient();
 
@@ -77,7 +118,12 @@ export async function generateRemixPlan(
     )
     .join('\n\n');
 
-  const systemPrompt = getRemixPlanPrompt(slideDescriptions, userPrompt, originalAnalyses.length);
+  const systemPrompt = getRemixPlanPrompt(
+    slideDescriptions,
+    userPrompt,
+    originalAnalyses.length,
+    productContext
+  );
 
   const response = await ai.models.generateContent({
     model: TEXT_MODEL,
@@ -100,6 +146,9 @@ export async function generateRemixPlan(
       jsonStr = arrayMatch[0];
     }
   }
+
+  // Fix literal newlines inside JSON strings from LLM responses
+  jsonStr = fixJsonNewlines(jsonStr);
 
   try {
     const plans: RemixPlan[] = JSON.parse(jsonStr);

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSlideshowGenerator } from '@/hooks/useSlideshowGenerator';
 import { ImageConfig } from '@/types';
-import { Loader2, Download } from 'lucide-react';
+import { Loader2, Download, Sparkles, Copy } from 'lucide-react';
 
 interface PromptPanelProps {
   sessionId?: string;
@@ -15,6 +15,7 @@ interface PromptPanelProps {
 export function PromptPanel({ sessionId }: PromptPanelProps) {
   const { session, isLoading, importFromTikTok } = useSlideshowGenerator();
   const [tiktokUrl, setTiktokUrl] = useState('');
+  const [remixMode, setRemixMode] = useState(true); // Default to remix mode
   const [config] = useState<ImageConfig>({
     aspectRatio: '9:16',
     model: 'imagen-4.0-generate-001',
@@ -23,7 +24,7 @@ export function PromptPanel({ sessionId }: PromptPanelProps) {
 
   const handleImport = () => {
     if (!tiktokUrl.trim()) return;
-    importFromTikTok(tiktokUrl, config);
+    importFromTikTok(tiktokUrl, config, remixMode);
   };
 
   const isDisabled =
@@ -55,12 +56,60 @@ export function PromptPanel({ sessionId }: PromptPanelProps) {
           <p className="text-xs text-muted-foreground">Paste a TikTok Photo Mode slideshow URL</p>
         </div>
 
+        {/* Mode Toggle */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium text-foreground">Import Mode</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setRemixMode(false)}
+              disabled={isDisabled}
+              className={`p-4 rounded-lg border-2 text-left transition-all ${
+                !remixMode
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-muted-foreground/50'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Copy className="size-4" />
+                <span className="font-medium text-sm">Copy</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Keep original text exactly as-is. Good for templates.
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRemixMode(true)}
+              disabled={isDisabled}
+              className={`p-4 rounded-lg border-2 text-left transition-all ${
+                remixMode
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-muted-foreground/50'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="size-4" />
+                <span className="font-medium text-sm">Remix</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                AI rewrites for your product. Subtle marketing.
+              </p>
+            </button>
+          </div>
+        </div>
+
         {/* What happens */}
         <div className="p-4 bg-muted/50 rounded-lg space-y-2">
           <p className="text-sm font-medium">How it works:</p>
           <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
             <li>We scrape the slideshow images</li>
             <li>AI analyzes each slide&apos;s style and content</li>
+            {remixMode ? (
+              <li>AI rewrites text to subtly promote your product</li>
+            ) : (
+              <li>Original text is preserved exactly</li>
+            )}
             <li>We auto-search Pinterest for similar images</li>
             <li>You pick images and edit text</li>
           </ol>
@@ -78,12 +127,16 @@ export function PromptPanel({ sessionId }: PromptPanelProps) {
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Importing & Analyzing...
+              {remixMode ? 'Importing & Remixing...' : 'Importing...'}
             </>
           ) : (
             <>
-              <Download className="mr-2 h-4 w-4" />
-              Import Slideshow
+              {remixMode ? (
+                <Sparkles className="mr-2 h-4 w-4" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              {remixMode ? 'Import & Remix' : 'Import Slideshow'}
             </>
           )}
         </Button>

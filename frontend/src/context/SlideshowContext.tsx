@@ -41,7 +41,8 @@ type SlideshowAction =
   | {
       type: 'SET_PINTEREST_CANDIDATES';
       payload: { slideNumber: number; candidates: PinterestCandidate[] };
-    };
+    }
+  | { type: 'SET_PRODUCT_CONTEXT'; payload: string };
 
 const initialState: SlideshowState = {
   session: null,
@@ -195,6 +196,12 @@ function slideshowReducer(state: SlideshowState, action: SlideshowAction): Slide
     case 'RESET':
       return initialState;
 
+    case 'SET_PRODUCT_CONTEXT':
+      if (!state.session) return state;
+      return {
+        session: { ...state.session, productContext: action.payload },
+      };
+
     default:
       return state;
   }
@@ -216,6 +223,7 @@ interface SlideshowContextValue {
   setSlides: (slides: GeneratedSlide[]) => void;
   updateSlide: (id: string, updates: Partial<GeneratedSlide>) => void;
   updateTextOverlay: (id: string, overlay: TextOverlay) => void;
+  setProductContext: (context: string) => void;
   reset: () => void;
 }
 
@@ -246,6 +254,7 @@ export function SlideshowProvider({ children }: { children: ReactNode }) {
     updateSlide: (id, updates) => dispatch({ type: 'UPDATE_SLIDE', payload: { id, updates } }),
     updateTextOverlay: (id, overlay) =>
       dispatch({ type: 'UPDATE_TEXT_OVERLAY', payload: { id, overlay } }),
+    setProductContext: (context) => dispatch({ type: 'SET_PRODUCT_CONTEXT', payload: context }),
     reset: () => dispatch({ type: 'RESET' }),
   };
 

@@ -5,34 +5,50 @@
 export function getRemixPlanPrompt(
   slideDescriptions: string,
   userPrompt: string,
-  slideCount: number
+  slideCount: number,
+  productContext?: string
 ): string {
-  return `You are a TikTok slideshow remix planner. Given an analysis of an original slideshow and a new topic, create a remix plan.
+  const productSection = productContext
+    ? `
+PRODUCT TO PROMOTE:
+${productContext}
+`
+    : '';
+
+  return `You are a TikTok slideshow remix expert.
 
 Original slideshow analysis:
 ${slideDescriptions}
 
-User wants to create a new slideshow about: ${userPrompt}
-
+${productSection}
 For each slide, provide:
-1. A Pinterest search query - USE THE ORIGINAL imageDescription AS YOUR BASE. Only modify it if the user's topic requires a different subject. Keep the same aesthetic/style.
-2. New overlay text that matches the original format but for the new topic
-3. Brief layout notes
+1. pinterestQuery - USE THE EXACT imageDescription FROM THE ORIGINAL. DO NOT CHANGE IT.
+2. newOverlayText - Create NEW content following the same structure (see rules below)
+3. layoutNotes - Match original text placement
 
-Return ONLY a valid JSON array with this exact structure:
+Return ONLY a valid JSON array:
 [
   {
     "slideNumber": 1,
-    "pinterestQuery": "Keep very similar to original imageDescription, only change subject if user topic requires it",
-    "newOverlayText": "Short text matching original style",
-    "layoutNotes": "Brief notes on text placement and style"
+    "pinterestQuery": "EXACT imageDescription from original",
+    "newOverlayText": "New text following same structure",
+    "layoutNotes": "Match original placement"
   }
 ]
 
-IMPORTANT RULES:
-- The pinterestQuery should be almost identical to the original imageDescription unless the user explicitly wants different imagery
-- If user says "same style but about cooking" - keep the aesthetic (cozy, moody, etc.) but change the subject to cooking
-- If user doesn't mention changing imagery, use the EXACT original imageDescription
+RULES:
+- Slide 1 HOOK: Keep the same hook FORMAT. E.g., "the EASIEST way I learned to X" stays as "the EASIEST way I learned to X"
+- Middle slides: Create NEW genuine tips/advice following the same narrative arc. These should NOT mention the product - just helpful content.
+- Product mention: ONLY where the original mentioned their product (usually last 1-2 slides). Keep it subtle.
+- Match the VIBE: casual tone, emoji usage, text length per slide
+- pinterestQuery = EXACT copy of imageDescription. No changes.
 - Number of slides: ${slideCount}
-- Match text style, length, and placement of originals`;
+
+SUBTLE MARKETING:
+- 90% of slides = genuine value, tips, relatable content
+- Product appears naturally, not forced
+- If someone can tell it's an ad, you failed
+- The content should work even WITHOUT the product mention
+
+The content should feel like a completely new slideshow that happens to use the same proven structure.`;
 }

@@ -61,6 +61,7 @@ export interface SlideshowSessionData {
     selectedImageUrl?: string;
     textPosition?: { x: number; y: number };
   }>;
+  productContext?: string;
 }
 
 export interface SlideshowListItem {

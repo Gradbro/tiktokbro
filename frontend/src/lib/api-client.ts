@@ -107,6 +107,7 @@ export async function saveSlideshow(session: SlideshowSession): Promise<Slidesho
       tiktokData: session.tiktokData,
       slideAnalyses: session.slideAnalyses,
       remixPlans: session.remixPlans,
+      productContext: session.productContext,
     }),
   });
 }
@@ -126,6 +127,7 @@ export async function updateSlideshow(session: SlideshowSession): Promise<Slides
       tiktokData: session.tiktokData,
       slideAnalyses: session.slideAnalyses,
       remixPlans: session.remixPlans,
+      productContext: session.productContext,
     }),
   });
 }
@@ -178,5 +180,30 @@ export async function duplicateSlideshow(
   return fetchApi<SlideshowSaveResponse>(`/slideshows/${sessionId}/duplicate`, {
     method: 'POST',
     body: JSON.stringify({ newSessionId }),
+  });
+}
+
+// ==================== Settings API ====================
+
+export interface SettingsResponse {
+  success: boolean;
+  data?: { productContext: string };
+  error?: string;
+}
+
+/**
+ * Get global settings
+ */
+export async function getSettings(): Promise<SettingsResponse> {
+  return fetchApi<SettingsResponse>('/settings');
+}
+
+/**
+ * Update global settings
+ */
+export async function updateSettings(productContext: string): Promise<SettingsResponse> {
+  return fetchApi<SettingsResponse>('/settings', {
+    method: 'PUT',
+    body: JSON.stringify({ productContext }),
   });
 }

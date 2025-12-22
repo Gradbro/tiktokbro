@@ -87,6 +87,7 @@ export function useSlideshowPersistence(): UseSlideshowPersistenceReturn {
           tiktokData?: SlideshowSession['tiktokData'];
           slideAnalyses?: SlideshowSession['slideAnalyses'];
           remixPlans?: SlideshowSession['remixPlans'];
+          productContext?: string;
         };
 
         const session: SlideshowSession = {
@@ -99,6 +100,7 @@ export function useSlideshowPersistence(): UseSlideshowPersistenceReturn {
           tiktokData: backendData.tiktokData,
           slideAnalyses: backendData.slideAnalyses,
           remixPlans: backendData.remixPlans,
+          productContext: backendData.productContext,
         };
         return session;
       }
