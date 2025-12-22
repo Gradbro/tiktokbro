@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,9 @@ import {
   ChevronRight,
   Plus,
   Upload,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -28,12 +31,12 @@ import {
   EXPORT_WIDTH,
   EXPORT_HEIGHT,
 } from './CanvasEditor';
-import { TEXT_STYLE_PRESETS, TextStylePreset } from './CanvasEditor/types';
+import { TEXT_COLORS, getColorStyleVariants, getCurrentVariantIndex } from './CanvasEditor/types';
 import { useCanvasRenderer } from './CanvasEditor/useCanvasRenderer';
 import JSZip from 'jszip';
 
 export function RemixPlanReview() {
-  const { session, setStage, setSlides } = useSlideshowContext();
+  const { session, setSlides } = useSlideshowContext();
   const { isLoading, editRemixPlan, searchPinterestForSlide, searchPinterestForAll } =
     useSlideshowGenerator();
 
@@ -66,39 +69,55 @@ export function RemixPlanReview() {
   // Derived state
   const currentPlan = session?.remixPlans?.find((p) => p.slideNumber === activeSlide);
   const originalSlide = session?.tiktokData?.slides.find((s) => s.index === activeSlide - 1);
-  const currentTextBoxes = textBoxesMap.get(activeSlide) || [];
-  const selectedText = currentTextBoxes.find((t) => t.id === selectedTextId);
 
-  // Initialize text boxes from remix plan's overlay text
-  useEffect(() => {
-    if (currentPlan && !textBoxesMap.has(activeSlide) && currentPlan.newOverlayText) {
-      // Log the text we receive from the plan
-      console.log(`[Slide ${activeSlide}] Initializing text:`, {
-        newOverlayText: currentPlan.newOverlayText,
-        hasNewlines: currentPlan.newOverlayText.includes('\n'),
-        length: currentPlan.newOverlayText.length,
-      });
+  // Get or initialize text boxes for the current slide
+  const currentTextBoxes = useMemo(() => {
+    const existing = textBoxesMap.get(activeSlide);
+    if (existing) {
+      // Return existing text boxes as-is - allow full positioning
+      return existing;
+    }
 
-      setTextBoxesMap((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(activeSlide, [
+    // If not in map but we have overlay text from the plan, restore from saved textStyle
+    if (currentPlan?.newOverlayText) {
+      const savedStyle = currentPlan.textStyle;
+      if (savedStyle) {
+        // Restore full styling from saved textStyle
+        return [
           {
-            ...DEFAULT_TEXT_BOX,
             id: `text-${activeSlide}-1`,
             text: currentPlan.newOverlayText,
-            x: currentPlan.textPosition?.x || 50,
-            y: currentPlan.textPosition?.y || 85,
+            x: savedStyle.x,
+            y: savedStyle.y,
+            fontSize: savedStyle.fontSize || DEFAULT_TEXT_BOX.fontSize,
+            color: savedStyle.color || DEFAULT_TEXT_BOX.color,
+            backgroundColor: savedStyle.backgroundColor ?? DEFAULT_TEXT_BOX.backgroundColor,
+            fontFamily: savedStyle.fontFamily || DEFAULT_TEXT_BOX.fontFamily,
+            textAlign: savedStyle.textAlign || DEFAULT_TEXT_BOX.textAlign,
           },
-        ]);
-        return newMap;
-      });
+        ];
+      }
+      // Fallback to default with textPosition if available
+      return [
+        {
+          ...DEFAULT_TEXT_BOX,
+          id: `text-${activeSlide}-1`,
+          text: currentPlan.newOverlayText,
+          x: currentPlan.textPosition?.x ?? 50,
+          y: currentPlan.textPosition?.y ?? 50,
+        },
+      ];
     }
-  }, [activeSlide, currentPlan, textBoxesMap]);
+    return [];
+  }, [textBoxesMap, activeSlide, currentPlan]);
 
-  // Reset selection when changing slides
-  useEffect(() => {
+  const selectedText = currentTextBoxes.find((t) => t.id === selectedTextId);
+
+  // Change slide and reset selection
+  const changeSlide = useCallback((newSlide: number | ((prev: number) => number)) => {
+    setActiveSlide(newSlide);
     setSelectedTextId(null);
-  }, [activeSlide]);
+  }, []);
 
   // Calculate responsive canvas size based on container
   useEffect(() => {
@@ -170,12 +189,23 @@ export function RemixPlanReview() {
         return newMap;
       });
 
-      // Sync to remix plan
+      // Sync to remix plan - save full text style for first text box
       const combinedText = newTextBoxes.map((b) => b.text).join('\n');
       const firstBox = newTextBoxes[0];
       editRemixPlan(activeSlide, {
         newOverlayText: combinedText,
         textPosition: firstBox ? { x: firstBox.x, y: firstBox.y } : undefined,
+        textStyle: firstBox
+          ? {
+              x: firstBox.x,
+              y: firstBox.y,
+              fontSize: firstBox.fontSize,
+              color: firstBox.color,
+              backgroundColor: firstBox.backgroundColor,
+              fontFamily: firstBox.fontFamily,
+              textAlign: firstBox.textAlign,
+            }
+          : undefined,
       });
     },
     [activeSlide, editRemixPlan]
@@ -224,42 +254,209 @@ export function RemixPlanReview() {
   const applyStyleToAll = useCallback(() => {
     if (!selectedText || !session?.remixPlans) return;
 
+    const remixPlans = session.remixPlans;
     const styleUpdates = {
       color: selectedText.color,
       backgroundColor: selectedText.backgroundColor,
     };
 
-    // Use functional update to get the most current state
+    // Build all the updates first
+    const updates: Array<{ slideNumber: number; boxes: TextBox[] }> = [];
+
+    remixPlans.forEach((plan) => {
+      const slideNumber = plan.slideNumber;
+      const existingBoxes = textBoxesMap.get(slideNumber);
+
+      let updatedBoxes: TextBox[];
+      if (existingBoxes && existingBoxes.length > 0) {
+        updatedBoxes = existingBoxes.map((box) => ({ ...box, ...styleUpdates }));
+      } else if (plan.newOverlayText) {
+        const savedStyle = plan.textStyle;
+        updatedBoxes = [
+          {
+            ...DEFAULT_TEXT_BOX,
+            id: `text-${slideNumber}-1`,
+            text: plan.newOverlayText,
+            x: savedStyle?.x ?? plan.textPosition?.x ?? 50,
+            y: savedStyle?.y ?? plan.textPosition?.y ?? 50,
+            fontSize: savedStyle?.fontSize || DEFAULT_TEXT_BOX.fontSize,
+            fontFamily: savedStyle?.fontFamily || DEFAULT_TEXT_BOX.fontFamily,
+            textAlign: savedStyle?.textAlign || DEFAULT_TEXT_BOX.textAlign,
+            ...styleUpdates,
+          },
+        ];
+      } else {
+        return;
+      }
+
+      updates.push({ slideNumber, boxes: updatedBoxes });
+    });
+
+    // Update local state
     setTextBoxesMap((prev) => {
-      const newMap = new Map<number, TextBox[]>();
-
-      // Go through ALL slides, not just ones in the map
-      session.remixPlans.forEach((plan) => {
-        const slideNumber = plan.slideNumber;
-        const existingBoxes = prev.get(slideNumber);
-
-        if (existingBoxes && existingBoxes.length > 0) {
-          // Update existing boxes
-          const updatedBoxes = existingBoxes.map((box) => ({ ...box, ...styleUpdates }));
-          newMap.set(slideNumber, updatedBoxes);
-        } else if (plan.newOverlayText) {
-          // Initialize with default text box and apply style
-          newMap.set(slideNumber, [
-            {
-              ...DEFAULT_TEXT_BOX,
-              id: `text-${slideNumber}-1`,
-              text: plan.newOverlayText,
-              x: plan.textPosition?.x || 50,
-              y: plan.textPosition?.y || 85,
-              ...styleUpdates,
-            },
-          ]);
-        }
+      const newMap = new Map(prev);
+      updates.forEach(({ slideNumber, boxes }) => {
+        newMap.set(slideNumber, boxes);
       });
-
       return newMap;
     });
-  }, [selectedText, session?.remixPlans]);
+
+    // Sync to session (outside of state setter)
+    updates.forEach(({ slideNumber, boxes }) => {
+      const firstBox = boxes[0];
+      if (firstBox) {
+        editRemixPlan(slideNumber, {
+          textStyle: {
+            x: firstBox.x,
+            y: firstBox.y,
+            fontSize: firstBox.fontSize,
+            color: firstBox.color,
+            backgroundColor: firstBox.backgroundColor,
+            fontFamily: firstBox.fontFamily,
+            textAlign: firstBox.textAlign,
+          },
+        });
+      }
+    });
+  }, [selectedText, session, textBoxesMap, editRemixPlan]);
+
+  // Apply alignment to all text boxes across all slides
+  const applyAlignmentToAll = useCallback(() => {
+    if (!selectedText || !session?.remixPlans) return;
+
+    const remixPlans = session.remixPlans;
+    const alignmentUpdates = {
+      textAlign: selectedText.textAlign,
+      x: selectedText.x,
+    };
+
+    // Build all the updates first
+    const updates: Array<{ slideNumber: number; boxes: TextBox[] }> = [];
+
+    remixPlans.forEach((plan) => {
+      const slideNumber = plan.slideNumber;
+      const existingBoxes = textBoxesMap.get(slideNumber);
+
+      let updatedBoxes: TextBox[];
+      if (existingBoxes && existingBoxes.length > 0) {
+        updatedBoxes = existingBoxes.map((box) => ({ ...box, ...alignmentUpdates }));
+      } else if (plan.newOverlayText) {
+        const savedStyle = plan.textStyle;
+        updatedBoxes = [
+          {
+            ...DEFAULT_TEXT_BOX,
+            id: `text-${slideNumber}-1`,
+            text: plan.newOverlayText,
+            y: savedStyle?.y ?? plan.textPosition?.y ?? 50,
+            fontSize: savedStyle?.fontSize || DEFAULT_TEXT_BOX.fontSize,
+            color: savedStyle?.color || DEFAULT_TEXT_BOX.color,
+            backgroundColor: savedStyle?.backgroundColor ?? DEFAULT_TEXT_BOX.backgroundColor,
+            fontFamily: savedStyle?.fontFamily || DEFAULT_TEXT_BOX.fontFamily,
+            ...alignmentUpdates,
+          },
+        ];
+      } else {
+        return;
+      }
+
+      updates.push({ slideNumber, boxes: updatedBoxes });
+    });
+
+    // Update local state
+    setTextBoxesMap((prev) => {
+      const newMap = new Map(prev);
+      updates.forEach(({ slideNumber, boxes }) => {
+        newMap.set(slideNumber, boxes);
+      });
+      return newMap;
+    });
+
+    // Sync to session (outside of state setter)
+    updates.forEach(({ slideNumber, boxes }) => {
+      const firstBox = boxes[0];
+      if (firstBox) {
+        editRemixPlan(slideNumber, {
+          textStyle: {
+            x: firstBox.x,
+            y: firstBox.y,
+            fontSize: firstBox.fontSize,
+            color: firstBox.color,
+            backgroundColor: firstBox.backgroundColor,
+            fontFamily: firstBox.fontFamily,
+            textAlign: firstBox.textAlign,
+          },
+        });
+      }
+    });
+  }, [selectedText, session, textBoxesMap, editRemixPlan]);
+
+  // Apply font size to all text boxes across all slides
+  const applyFontSizeToAll = useCallback(() => {
+    if (!selectedText || !session?.remixPlans) return;
+
+    const remixPlans = session.remixPlans;
+    const fontSizeUpdate = { fontSize: selectedText.fontSize };
+
+    // Build all the updates first
+    const updates: Array<{ slideNumber: number; boxes: TextBox[] }> = [];
+
+    remixPlans.forEach((plan) => {
+      const slideNumber = plan.slideNumber;
+      const existingBoxes = textBoxesMap.get(slideNumber);
+
+      let updatedBoxes: TextBox[];
+      if (existingBoxes && existingBoxes.length > 0) {
+        updatedBoxes = existingBoxes.map((box) => ({ ...box, ...fontSizeUpdate }));
+      } else if (plan.newOverlayText) {
+        const savedStyle = plan.textStyle;
+        updatedBoxes = [
+          {
+            ...DEFAULT_TEXT_BOX,
+            id: `text-${slideNumber}-1`,
+            text: plan.newOverlayText,
+            x: savedStyle?.x ?? plan.textPosition?.x ?? 50,
+            y: savedStyle?.y ?? plan.textPosition?.y ?? 50,
+            color: savedStyle?.color || DEFAULT_TEXT_BOX.color,
+            backgroundColor: savedStyle?.backgroundColor ?? DEFAULT_TEXT_BOX.backgroundColor,
+            fontFamily: savedStyle?.fontFamily || DEFAULT_TEXT_BOX.fontFamily,
+            textAlign: savedStyle?.textAlign || DEFAULT_TEXT_BOX.textAlign,
+            ...fontSizeUpdate,
+          },
+        ];
+      } else {
+        return;
+      }
+
+      updates.push({ slideNumber, boxes: updatedBoxes });
+    });
+
+    // Update local state
+    setTextBoxesMap((prev) => {
+      const newMap = new Map(prev);
+      updates.forEach(({ slideNumber, boxes }) => {
+        newMap.set(slideNumber, boxes);
+      });
+      return newMap;
+    });
+
+    // Sync to session (outside of state setter)
+    updates.forEach(({ slideNumber, boxes }) => {
+      const firstBox = boxes[0];
+      if (firstBox) {
+        editRemixPlan(slideNumber, {
+          textStyle: {
+            x: firstBox.x,
+            y: firstBox.y,
+            fontSize: firstBox.fontSize,
+            color: firstBox.color,
+            backgroundColor: firstBox.backgroundColor,
+            fontFamily: firstBox.fontFamily,
+            textAlign: firstBox.textAlign,
+          },
+        });
+      }
+    });
+  }, [selectedText, session, textBoxesMap, editRemixPlan]);
 
   // Pinterest search
   const handleSearch = async (slideNumber: number, query: string) => {
@@ -337,17 +534,34 @@ export function RemixPlanReview() {
       // Get text boxes from map, or fallback to plan's overlay text if not visited
       let slideTextBoxes = textBoxesMap.get(plan.slideNumber);
       if (!slideTextBoxes || slideTextBoxes.length === 0) {
-        // Slide was never visited - create text box from plan data
+        // Slide was never visited - create text box from plan data with saved style
         if (plan.newOverlayText) {
-          slideTextBoxes = [
-            {
-              ...DEFAULT_TEXT_BOX,
-              id: `text-${plan.slideNumber}-1`,
-              text: plan.newOverlayText,
-              x: plan.textPosition?.x || 50,
-              y: plan.textPosition?.y || 85,
-            },
-          ];
+          const savedStyle = plan.textStyle;
+          if (savedStyle) {
+            slideTextBoxes = [
+              {
+                id: `text-${plan.slideNumber}-1`,
+                text: plan.newOverlayText,
+                x: savedStyle.x,
+                y: savedStyle.y,
+                fontSize: savedStyle.fontSize || DEFAULT_TEXT_BOX.fontSize,
+                color: savedStyle.color || DEFAULT_TEXT_BOX.color,
+                backgroundColor: savedStyle.backgroundColor ?? DEFAULT_TEXT_BOX.backgroundColor,
+                fontFamily: savedStyle.fontFamily || DEFAULT_TEXT_BOX.fontFamily,
+                textAlign: savedStyle.textAlign || DEFAULT_TEXT_BOX.textAlign,
+              },
+            ];
+          } else {
+            slideTextBoxes = [
+              {
+                ...DEFAULT_TEXT_BOX,
+                id: `text-${plan.slideNumber}-1`,
+                text: plan.newOverlayText,
+                x: plan.textPosition?.x ?? 50,
+                y: plan.textPosition?.y ?? 50,
+              },
+            ];
+          }
         } else {
           slideTextBoxes = [];
         }
@@ -416,11 +630,11 @@ export function RemixPlanReview() {
     });
 
     setSlides(slides);
-    setStage('complete');
+    // Stay on the same page so user can continue editing if needed
   };
 
   // Early return if no data
-  if (!session?.remixPlans) {
+  if (!session?.remixPlans || session.remixPlans.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
         No remix plans available
@@ -446,7 +660,7 @@ export function RemixPlanReview() {
             return (
               <button
                 key={plan.slideNumber}
-                onClick={() => setActiveSlide(plan.slideNumber)}
+                onClick={() => changeSlide(plan.slideNumber)}
                 className={cn(
                   'relative shrink-0 w-9 h-12 rounded overflow-hidden border-2 transition-all',
                   isActive
@@ -709,84 +923,119 @@ export function RemixPlanReview() {
                     />
                     <span className="text-xs w-6">{selectedText.fontSize}</span>
                   </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs text-muted-foreground">Style</Label>
-                  <div className="mt-1 grid grid-cols-2 gap-1">
-                    {(
-                      [
-                        { key: 'white', label: 'White' },
-                        { key: 'black', label: 'Black' },
-                        { key: 'white-on-black', label: 'W/B' },
-                        { key: 'black-on-white', label: 'B/W' },
-                      ] as { key: TextStylePreset; label: string }[]
-                    ).map(({ key, label }) => {
-                      const preset = TEXT_STYLE_PRESETS[key];
-                      const isSelected =
-                        selectedText.color === preset.color &&
-                        selectedText.backgroundColor === preset.backgroundColor;
-                      return (
-                        <button
-                          key={key}
-                          onClick={() =>
-                            updateSelectedTextBox({
-                              color: preset.color,
-                              backgroundColor: preset.backgroundColor,
-                            })
-                          }
-                          className={cn(
-                            'px-1.5 py-1 rounded text-xs font-medium transition-all border',
-                            isSelected ? 'ring-2 ring-blue-500 ring-offset-1' : '',
-                            preset.backgroundColor
-                              ? 'border-muted'
-                              : key === 'white'
-                                ? 'border-muted bg-zinc-700'
-                                : 'border-muted bg-zinc-200'
-                          )}
-                          style={{
-                            color: preset.color,
-                            backgroundColor:
-                              preset.backgroundColor || (key === 'white' ? '#3f3f46' : '#e4e4e7'),
-                          }}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={applyStyleToAll}
-                    className="w-full mt-1 h-6 text-xs"
+                    onClick={applyFontSizeToAll}
+                    className="w-full mt-1.5 h-6 text-xs"
                   >
                     Apply to All Slides
                   </Button>
                 </div>
 
                 <div>
-                  <Label className="text-xs text-muted-foreground">Position</Label>
+                  <Label className="text-xs text-muted-foreground">Color</Label>
+                  <div className="mt-1.5 flex items-center justify-center gap-2">
+                    {TEXT_COLORS.map((baseColor) => {
+                      const variantIdx = getCurrentVariantIndex(
+                        baseColor,
+                        selectedText.color,
+                        selectedText.backgroundColor
+                      );
+                      const isSelected = variantIdx >= 0;
+                      const variants = getColorStyleVariants(baseColor);
+                      const isWhite = baseColor === '#FFFFFF';
+
+                      // Determine visual appearance based on current variant
+                      const currentVariant = isSelected ? variants[variantIdx] : variants[0];
+                      const showInnerCircle = isSelected && currentVariant.backgroundColor !== null;
+
+                      return (
+                        <button
+                          key={baseColor}
+                          onClick={() => {
+                            // Cycle to next variant if already selected, otherwise select first
+                            const nextIdx = isSelected ? (variantIdx + 1) % variants.length : 0;
+                            const nextVariant = variants[nextIdx];
+                            updateSelectedTextBox({
+                              color: nextVariant.color,
+                              backgroundColor: nextVariant.backgroundColor,
+                            });
+                          }}
+                          className={cn(
+                            'w-7 h-7 rounded-full transition-all flex items-center justify-center',
+                            isSelected
+                              ? 'ring-2 ring-offset-2 ring-blue-500 scale-110'
+                              : 'hover:scale-105',
+                            isWhite && !showInnerCircle && 'border border-zinc-300'
+                          )}
+                          style={{
+                            backgroundColor: showInnerCircle
+                              ? (currentVariant.backgroundColor ?? baseColor)
+                              : baseColor,
+                          }}
+                          title={isWhite ? 'White (tap to cycle)' : `${baseColor} (tap to cycle)`}
+                        >
+                          {/* Inner circle shows the text color when there's a background */}
+                          {showInnerCircle && (
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor: currentVariant.color,
+                                border:
+                                  currentVariant.color === '#FFFFFF'
+                                    ? '1px solid #d4d4d8'
+                                    : undefined,
+                              }}
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center mt-1">
+                    Tap again to cycle styles
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={applyStyleToAll}
+                    className="w-full mt-1.5 h-6 text-xs"
+                  >
+                    Apply to All Slides
+                  </Button>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Alignment</Label>
                   <div className="flex gap-1 mt-1">
                     {[
-                      { label: 'Top', y: 15 },
-                      { label: 'Mid', y: 50 },
-                      { label: 'Bot', y: 85 },
-                    ].map((pos) => (
+                      { value: 'left' as const, icon: AlignLeft, x: 8 },
+                      { value: 'center' as const, icon: AlignCenter, x: 50 },
+                      { value: 'right' as const, icon: AlignRight, x: 92 },
+                    ].map(({ value, icon: Icon, x }) => (
                       <button
-                        key={pos.label}
-                        onClick={() => updateSelectedTextBox({ y: pos.y, x: 50 })}
+                        key={value}
+                        onClick={() => updateSelectedTextBox({ textAlign: value, x })}
                         className={cn(
-                          'flex-1 px-1.5 py-1 text-xs rounded transition-colors',
-                          Math.abs(selectedText.y - pos.y) < 10
+                          'flex-1 px-1.5 py-1.5 rounded transition-colors flex items-center justify-center',
+                          selectedText.textAlign === value
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted text-muted-foreground hover:bg-muted/80'
                         )}
                       >
-                        {pos.label}
+                        <Icon className="h-3.5 w-3.5" />
                       </button>
                     ))}
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={applyAlignmentToAll}
+                    className="w-full mt-1.5 h-6 text-xs"
+                  >
+                    Apply to All Slides
+                  </Button>
                 </div>
 
                 <Button
@@ -809,7 +1058,7 @@ export function RemixPlanReview() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setActiveSlide((prev) => prev - 1)}
+            onClick={() => changeSlide((prev) => prev - 1)}
             disabled={activeSlide === 1}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -820,7 +1069,7 @@ export function RemixPlanReview() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setActiveSlide((prev) => prev + 1)}
+            onClick={() => changeSlide((prev) => prev + 1)}
             disabled={activeSlide === totalCount}
           >
             <ChevronRight className="h-4 w-4" />

@@ -89,6 +89,9 @@ export function useCanvasRenderer({ width, height }: UseCanvasRendererOptions) {
       const { text, x, y, fontSize, color, backgroundColor, fontFamily, textAlign } = textBox;
 
       // Convert percentage position to pixels
+      // For center-aligned text, pixelX is the center point
+      // For left-aligned text, pixelX is the left edge
+      // For right-aligned text, pixelX is the right edge
       const pixelX = (x / 100) * canvasWidth;
       const pixelY = (y / 100) * canvasHeight;
       const scaledFontSize = fontSize * scale;
@@ -135,8 +138,8 @@ export function useCanvasRenderer({ width, height }: UseCanvasRendererOptions) {
             textAlign === 'center'
               ? pixelX - bgWidth / 2
               : textAlign === 'right'
-                ? pixelX - bgWidth
-                : pixelX;
+                ? pixelX - lineWidth - paddingX
+                : pixelX - paddingX;
           const bgY = lineY - bgHeight / 2;
 
           // Draw rounded rectangle background for this line
@@ -334,8 +337,17 @@ export function useCanvasRenderer({ width, height }: UseCanvasRendererOptions) {
         const totalWidth = textWidth + padding * 2;
         const totalHeight = textHeight + padding * 2;
 
-        const left = pixelX - totalWidth / 2;
-        const right = pixelX + totalWidth / 2;
+        // Calculate left position based on alignment
+        let left: number;
+        if (box.textAlign === 'left') {
+          left = pixelX - padding;
+        } else if (box.textAlign === 'right') {
+          left = pixelX - totalWidth + padding;
+        } else {
+          left = pixelX - totalWidth / 2;
+        }
+
+        const right = left + totalWidth;
         const top = pixelY - totalHeight / 2;
         const bottom = pixelY + totalHeight / 2;
 

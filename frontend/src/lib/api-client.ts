@@ -11,6 +11,12 @@ import {
   RemixPlanResponse,
   PinterestSearchRequest,
   PinterestSearchResponse,
+  SlideshowSession,
+  SlideshowListResponse,
+  SlideshowGetResponse,
+  SlideshowSaveResponse,
+  SlideshowDeleteResponse,
+  SlideshowSearchResponse,
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -80,5 +86,97 @@ export async function searchPinterest(
   return fetchApi<PinterestSearchResponse>('/pinterest/search', {
     method: 'POST',
     body: JSON.stringify(request),
+  });
+}
+
+// ==================== Slideshow Persistence API ====================
+
+/**
+ * Save a slideshow session to the database
+ */
+export async function saveSlideshow(session: SlideshowSession): Promise<SlideshowSaveResponse> {
+  return fetchApi<SlideshowSaveResponse>('/slideshows', {
+    method: 'POST',
+    body: JSON.stringify({
+      sessionId: session.id,
+      prompt: session.prompt,
+      stage: session.stage,
+      plans: session.plans,
+      slides: session.slides,
+      config: session.config,
+      tiktokData: session.tiktokData,
+      slideAnalyses: session.slideAnalyses,
+      remixPlans: session.remixPlans,
+    }),
+  });
+}
+
+/**
+ * Update an existing slideshow session
+ */
+export async function updateSlideshow(session: SlideshowSession): Promise<SlideshowSaveResponse> {
+  return fetchApi<SlideshowSaveResponse>(`/slideshows/${session.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      prompt: session.prompt,
+      stage: session.stage,
+      plans: session.plans,
+      slides: session.slides,
+      config: session.config,
+      tiktokData: session.tiktokData,
+      slideAnalyses: session.slideAnalyses,
+      remixPlans: session.remixPlans,
+    }),
+  });
+}
+
+/**
+ * Get a slideshow session by ID
+ */
+export async function getSlideshow(sessionId: string): Promise<SlideshowGetResponse> {
+  return fetchApi<SlideshowGetResponse>(`/slideshows/${sessionId}`);
+}
+
+/**
+ * List all slideshow sessions with pagination
+ */
+export async function listSlideshows(
+  page: number = 1,
+  limit: number = 20
+): Promise<SlideshowListResponse> {
+  return fetchApi<SlideshowListResponse>(`/slideshows?page=${page}&limit=${limit}`);
+}
+
+/**
+ * Search slideshows by name or prompt
+ */
+export async function searchSlideshows(
+  query: string,
+  limit: number = 10
+): Promise<SlideshowSearchResponse> {
+  return fetchApi<SlideshowSearchResponse>(
+    `/slideshows/search?q=${encodeURIComponent(query)}&limit=${limit}`
+  );
+}
+
+/**
+ * Delete a slideshow session
+ */
+export async function deleteSlideshow(sessionId: string): Promise<SlideshowDeleteResponse> {
+  return fetchApi<SlideshowDeleteResponse>(`/slideshows/${sessionId}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Duplicate a slideshow session
+ */
+export async function duplicateSlideshow(
+  sessionId: string,
+  newSessionId: string
+): Promise<SlideshowSaveResponse> {
+  return fetchApi<SlideshowSaveResponse>(`/slideshows/${sessionId}/duplicate`, {
+    method: 'POST',
+    body: JSON.stringify({ newSessionId }),
   });
 }

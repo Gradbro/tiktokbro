@@ -53,7 +53,9 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     render={<Link href={item.url} />}
                     isActive={
-                      pathname === item.url || (item.url === '/slideshows' && pathname === '/')
+                      pathname === item.url ||
+                      pathname.startsWith(item.url + '/') ||
+                      (item.url === '/slideshows' && pathname === '/')
                     }
                   >
                     <item.icon className="size-4" />

@@ -21,6 +21,7 @@ interface SlideshowState {
 
 type SlideshowAction =
   | { type: 'INIT_SESSION'; payload: { prompt: string; config: ImageConfig } }
+  | { type: 'RESTORE_SESSION'; payload: SlideshowSession }
   | { type: 'SET_STAGE'; payload: WorkflowStage }
   | { type: 'SET_PLANS'; payload: SlidePlan[] }
   | { type: 'UPDATE_PLAN'; payload: { slideNumber: number; updates: Partial<SlidePlan> } }
@@ -58,6 +59,11 @@ function slideshowReducer(state: SlideshowState, action: SlideshowAction): Slide
           slides: [],
           config: action.payload.config,
         },
+      };
+
+    case 'RESTORE_SESSION':
+      return {
+        session: action.payload,
       };
 
     case 'INIT_IMPORT_SESSION':
@@ -197,6 +203,7 @@ function slideshowReducer(state: SlideshowState, action: SlideshowAction): Slide
 interface SlideshowContextValue {
   session: SlideshowSession | null;
   initSession: (prompt: string, config: ImageConfig) => void;
+  restoreSession: (session: SlideshowSession) => void;
   initImportSession: (tiktokData: TikTokScrapeResult, config: ImageConfig) => void;
   setStage: (stage: WorkflowStage) => void;
   setPlans: (plans: SlidePlan[]) => void;
@@ -221,6 +228,7 @@ export function SlideshowProvider({ children }: { children: ReactNode }) {
     session: state.session,
     initSession: (prompt, config) =>
       dispatch({ type: 'INIT_SESSION', payload: { prompt, config } }),
+    restoreSession: (session) => dispatch({ type: 'RESTORE_SESSION', payload: session }),
     initImportSession: (tiktokData, config) =>
       dispatch({ type: 'INIT_IMPORT_SESSION', payload: { tiktokData, config } }),
     setStage: (stage) => dispatch({ type: 'SET_STAGE', payload: stage }),

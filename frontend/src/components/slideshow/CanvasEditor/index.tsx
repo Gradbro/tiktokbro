@@ -18,7 +18,7 @@ export interface CanvasEditorRef {
 
 /**
  * Calculate the bounding box for a text box based on its content
- * Accounts for word wrapping
+ * Accounts for word wrapping and text alignment
  */
 function getTextBoundingBox(
   box: TextBox,
@@ -63,8 +63,19 @@ function getTextBoundingBox(
   const totalWidth = textWidth + padding * 2;
   const totalHeight = textHeight + padding * 2;
 
+  // Calculate left position based on alignment
+  let left: number;
+  if (box.textAlign === 'left') {
+    left = pixelX - padding; // pixelX is left edge of text
+  } else if (box.textAlign === 'right') {
+    left = pixelX - totalWidth + padding; // pixelX is right edge of text
+  } else {
+    // center
+    left = pixelX - totalWidth / 2;
+  }
+
   return {
-    left: pixelX - totalWidth / 2,
+    left,
     top: pixelY - totalHeight / 2,
     width: totalWidth,
     height: totalHeight,
@@ -200,9 +211,9 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
         const mouseX = e.clientX - rect.left - dragOffset.x;
         const mouseY = e.clientY - rect.top - dragOffset.y;
 
-        // Convert to percentage and clamp
-        const newX = Math.max(5, Math.min(95, (mouseX / width) * 100));
-        const newY = Math.max(5, Math.min(95, (mouseY / height) * 100));
+        // Convert to percentage - allow full range
+        const newX = (mouseX / width) * 100;
+        const newY = (mouseY / height) * 100;
 
         updateTextBox(selectedTextId, { x: newX, y: newY });
       },
@@ -348,7 +359,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                       ref={textareaRef}
                       value={box.text}
                       onChange={handleTextChange}
-                      className="w-full border-none outline-none resize-none text-center pointer-events-auto"
+                      className="w-full border-none outline-none resize-none pointer-events-auto"
                       style={{
                         font: `bold ${box.fontSize}px ${box.fontFamily}`,
                         color: '#ffffff',
@@ -361,6 +372,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                         height: Math.min(bounds.height, height - Math.max(0, bounds.top) - 20),
                         maxHeight: height - Math.max(0, bounds.top) - 20,
                         overflow: 'auto',
+                        textAlign: box.textAlign,
                       }}
                       onMouseDown={(e) => e.stopPropagation()}
                       onKeyDown={(e) => {

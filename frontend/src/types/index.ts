@@ -61,6 +61,17 @@ export interface SlideAnalysis {
   textPlacement: string;
 }
 
+// Text styling saved with each remix plan
+export interface TextStyle {
+  x: number;
+  y: number;
+  fontSize: number;
+  color: string;
+  backgroundColor: string | null;
+  fontFamily: string;
+  textAlign: 'left' | 'center' | 'right';
+}
+
 export interface RemixPlan {
   slideNumber: number;
   pinterestQuery: string;
@@ -69,8 +80,10 @@ export interface RemixPlan {
   // Pinterest candidates fetched after user triggers search
   pinterestCandidates?: PinterestCandidate[];
   selectedImageUrl?: string;
-  // Text position for the overlay
+  // Text position for the overlay (legacy - use textStyle instead)
   textPosition?: { x: number; y: number };
+  // Full text styling
+  textStyle?: TextStyle;
 }
 
 export interface PinterestCandidate {
@@ -159,5 +172,47 @@ export interface PinterestSearchResponse {
     urls: string[];
     count: number;
   };
+  error?: string;
+}
+
+// Slideshow Persistence Types
+export interface SlideshowListItem {
+  sessionId: string;
+  name: string;
+  prompt: string;
+  stage: string;
+  slideCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SlideshowListResponse {
+  success: boolean;
+  sessions: SlideshowListItem[];
+  total: number;
+  pages: number;
+}
+
+export interface SlideshowGetResponse {
+  success: boolean;
+  data?: SlideshowSession;
+  error?: string;
+}
+
+export interface SlideshowSaveResponse {
+  success: boolean;
+  data?: SlideshowSession;
+  error?: string;
+}
+
+export interface SlideshowDeleteResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+export interface SlideshowSearchResponse {
+  success: boolean;
+  data?: SlideshowListItem[];
   error?: string;
 }

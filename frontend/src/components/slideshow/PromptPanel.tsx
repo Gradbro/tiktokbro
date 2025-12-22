@@ -8,7 +8,11 @@ import { useSlideshowGenerator } from '@/hooks/useSlideshowGenerator';
 import { ImageConfig } from '@/types';
 import { Loader2, Download } from 'lucide-react';
 
-export function PromptPanel() {
+interface PromptPanelProps {
+  sessionId?: string;
+}
+
+export function PromptPanel({ sessionId }: PromptPanelProps) {
   const { session, isLoading, importFromTikTok } = useSlideshowGenerator();
   const [tiktokUrl, setTiktokUrl] = useState('');
   const [config] = useState<ImageConfig>({
