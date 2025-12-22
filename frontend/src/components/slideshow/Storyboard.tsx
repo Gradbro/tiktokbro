@@ -24,6 +24,12 @@ export function Storyboard({ sessionId, isNew }: StoryboardProps) {
   const lastSavedRef = useRef<string | null>(null);
   const hasInitialSaved = useRef(false);
 
+  // Reset refs when sessionId changes (new slideshow)
+  useEffect(() => {
+    lastSavedRef.current = null;
+    hasInitialSaved.current = false;
+  }, [sessionId]);
+
   // Auto-save when session changes (debounced)
   const handleSave = useCallback(async () => {
     if (!session || !sessionId) return;

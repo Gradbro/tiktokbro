@@ -13,7 +13,7 @@ export default function SlideshowSessionPage() {
   const sessionId = params.sessionId as string;
   const isNew = searchParams.get('new') === 'true';
 
-  const { restoreSession } = useSlideshowContext();
+  const { restoreSession, reset } = useSlideshowContext();
   const { load, isLoading } = useSlideshowPersistence();
 
   const [initialized, setInitialized] = useState(false);
@@ -21,9 +21,9 @@ export default function SlideshowSessionPage() {
 
   useEffect(() => {
     const initializeSession = async () => {
-      // If it's a new session, initialize fresh
+      // If it's a new session, reset context to start fresh
       if (isNew) {
-        // Session will be initialized when user provides prompt
+        reset(); // Clear any existing session data
         setInitialized(true);
         return;
       }
@@ -45,7 +45,7 @@ export default function SlideshowSessionPage() {
     if (!initialized && sessionId) {
       initializeSession();
     }
-  }, [sessionId, isNew, initialized, load, restoreSession]);
+  }, [sessionId, isNew, initialized, load, restoreSession, reset]);
 
   if (!initialized || isLoading) {
     return (

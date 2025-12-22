@@ -80,7 +80,7 @@ class SlideshowService {
   async create(data: SlideshowSessionData): Promise<ISlideshowSession> {
     const session = new SlideshowSession({
       ...data,
-      name: data.name || this.generateName(data.prompt),
+      name: data.name || this.generateName(data),
     });
     return session.save();
   }
@@ -99,6 +99,19 @@ class SlideshowService {
     sessionId: string,
     data: Partial<SlideshowSessionData>
   ): Promise<ISlideshowSession | null> {
+    // If name is "Untitled Slideshow", try to generate a better one from new data
+    const existing = await this.getById(sessionId);
+    if (existing && existing.name === 'Untitled Slideshow') {
+      const mergedData = {
+        ...existing.toObject(),
+        ...data,
+      } as SlideshowSessionData;
+      const generatedName = this.generateName(mergedData);
+      if (generatedName !== 'Untitled Slideshow') {
+        data.name = generatedName;
+      }
+    }
+
     return SlideshowSession.findOneAndUpdate({ sessionId }, { $set: data }, { new: true });
   }
 
@@ -171,15 +184,37 @@ class SlideshowService {
   }
 
   /**
-   * Generate a name from the prompt
+   * Generate a name from available data
    */
-  private generateName(prompt: string): string {
-    if (!prompt) {
-      return 'Untitled Slideshow';
+  private generateName(data: SlideshowSessionData): string {
+    // Priority 1: Use prompt if available
+    if (data.prompt && data.prompt.trim()) {
+      const name = data.prompt.slice(0, 50).trim();
+      return name.length < data.prompt.length ? `${name}...` : name;
     }
-    // Take first 50 chars and clean up
-    const name = prompt.slice(0, 50).trim();
-    return name.length < prompt.length ? `${name}...` : name;
+
+    // Priority 2: Use TikTok author name if available
+    if (data.tiktokData?.authorName) {
+      return `Remix: @${data.tiktokData.authorName}`;
+    }
+
+    // Priority 3: Use TikTok caption if available
+    if (data.tiktokData?.caption) {
+      const caption = data.tiktokData.caption.slice(0, 50).trim();
+      return caption.length < data.tiktokData.caption.length ? `${caption}...` : caption;
+    }
+
+    // Priority 4: Use first remix plan overlay text
+    if (data.remixPlans && data.remixPlans.length > 0) {
+      const firstText = data.remixPlans[0].newOverlayText;
+      if (firstText) {
+        const name = firstText.slice(0, 50).trim();
+        return name.length < firstText.length ? `${name}...` : name;
+      }
+    }
+
+    // Fallback
+    return 'Untitled Slideshow';
   }
 
   /**
