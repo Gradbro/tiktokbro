@@ -147,9 +147,9 @@ export function Storyboard({ sessionId, isNew }: StoryboardProps) {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
                 <Wand2 className="h-8 w-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-semibold text-foreground mb-2">Import from TikTok</h2>
+              <h2 className="text-2xl font-semibold text-foreground mb-2">Create a Slideshow</h2>
               <p className="text-muted-foreground">
-                Import a TikTok Photo Mode slideshow and remix it with similar images from Pinterest
+                Create from scratch with AI or import a TikTok Photo Mode slideshow to remix
               </p>
             </div>
           </div>

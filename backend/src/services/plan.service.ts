@@ -1,9 +1,15 @@
 import { getGeminiClient, TEXT_MODEL } from './gemini.service';
-import { getSlidePlanPrompt, getSlidePlanUserPrompt, getRemixPlanPrompt } from '../prompts';
+import {
+  getSlidePlanPrompt,
+  getSlidePlanUserPrompt,
+  getRemixPlanPrompt,
+  getCreatePlanPrompt,
+} from '../prompts';
 import { generateStructuredContent } from '../lib/gemini-structured';
 import {
   SlidePlanArraySchema,
   RemixPlanArraySchema,
+  CreatePlanArraySchema,
   type SlidePlan,
   type RemixPlan,
   type SlideAnalysis,
@@ -64,6 +70,24 @@ export async function generateRemixPlan(
     slideNumber: index + 1,
     pinterestQuery: plan.pinterestQuery || '',
     newOverlayText: plan.newOverlayText || '',
+    layoutNotes: plan.layoutNotes || '',
+  }));
+}
+
+export async function generateCreatePlan(topic: string, slideCount: number): Promise<RemixPlan[]> {
+  const ai = getGeminiClient();
+
+  const systemPrompt = getCreatePlanPrompt(topic, slideCount);
+
+  const plans = await generateStructuredContent(ai, CreatePlanArraySchema, {
+    model: TEXT_MODEL,
+    contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
+  });
+
+  return plans.map((plan, index) => ({
+    slideNumber: index + 1,
+    pinterestQuery: plan.pinterestQuery || '',
+    newOverlayText: plan.overlayText || '',
     layoutNotes: plan.layoutNotes || '',
   }));
 }

@@ -9,6 +9,8 @@ import {
   TikTokAnalyzeResponse,
   RemixPlanRequest,
   RemixPlanResponse,
+  CreatePlanRequest,
+  CreatePlanResponse,
   PinterestSearchRequest,
   PinterestSearchResponse,
   SlideshowSession,
@@ -75,6 +77,13 @@ export async function analyzeTikTokSlides(
 
 export async function generateRemixPlan(request: RemixPlanRequest): Promise<RemixPlanResponse> {
   return fetchApi<RemixPlanResponse>('/generate-plan/remix', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function generateCreatePlan(request: CreatePlanRequest): Promise<CreatePlanResponse> {
+  return fetchApi<CreatePlanResponse>('/generate-plan/create', {
     method: 'POST',
     body: JSON.stringify(request),
   });

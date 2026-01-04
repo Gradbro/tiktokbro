@@ -19,9 +19,9 @@ export function getGeminiClient(): GoogleGenAI {
   return ai;
 }
 
-export const TEXT_MODEL = 'gemini-2.0-flash';
-export const VISION_MODEL = 'gemini-2.5-pro'; // Best for image analysis
-export const IMAGE_MODEL = 'imagen-4.0-generate-001';
+export const TEXT_MODEL = 'gemini-3-flash-preview';
+export const VISION_MODEL = 'gemini-3-flash-preview';
+export const IMAGE_MODEL = 'gemini-3-pro-image-preview';
 
 export async function analyzeSlideImage(imageUrl: string): Promise<SlideAnalysis> {
   const ai = getGeminiClient();

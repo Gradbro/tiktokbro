@@ -164,6 +164,17 @@ export interface RemixPlanResponse {
   error?: string;
 }
 
+export interface CreatePlanRequest {
+  topic: string;
+  slideCount: number;
+}
+
+export interface CreatePlanResponse {
+  success: boolean;
+  plans?: RemixPlan[];
+  error?: string;
+}
+
 export interface PinterestSearchRequest {
   query: string;
   limit?: number;

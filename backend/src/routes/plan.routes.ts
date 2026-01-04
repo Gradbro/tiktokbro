@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { generateSlidePlan, generateRemixPlan } from '../services/plan.service';
+import { generateSlidePlan, generateRemixPlan, generateCreatePlan } from '../services/plan.service';
 import { GeneratePlanRequest, GeneratePlanResponse } from '../types';
 import { SlideAnalysis } from '../services/gemini.service';
 
@@ -55,6 +55,44 @@ router.post(
     }
   }
 );
+
+/**
+ * POST /api/generate-plan/create
+ * Generate a slideshow plan from scratch (Pinterest queries + overlay text)
+ */
+router.post('/create', async (req: Request, res: Response) => {
+  try {
+    const { topic, slideCount = 5 } = req.body;
+
+    if (!topic || typeof topic !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Topic is required',
+      });
+    }
+
+    if (topic.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Topic must be at least 3 characters',
+      });
+    }
+
+    const validSlideCount = Math.min(Math.max(slideCount, 3), 10);
+    const plans = await generateCreatePlan(topic, validSlideCount);
+
+    return res.json({
+      success: true,
+      plans,
+    });
+  } catch (error) {
+    console.error('Error generating create plan:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate plan',
+    });
+  }
+});
 
 /**
  * POST /api/generate-plan/remix

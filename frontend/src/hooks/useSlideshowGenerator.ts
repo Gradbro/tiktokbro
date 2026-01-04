@@ -9,6 +9,7 @@ import {
   analyzeTikTokSlides,
   searchPinterest,
   generateRemixPlan,
+  generateCreatePlan,
 } from '@/lib/api-client';
 import { ImageConfig, GeneratedSlide, RemixPlan, PinterestCandidate } from '@/types';
 import { toast } from 'sonner';
@@ -30,6 +31,36 @@ export function useSlideshowGenerator() {
 
   const productContext = session?.productContext;
   const [isLoading, setIsLoading] = useState(false);
+
+  const createFromScratch = useCallback(
+    async (topic: string, slideCount: number, config: ImageConfig) => {
+      setIsLoading(true);
+      try {
+        toast.info('AI is planning your slideshow...');
+
+        // Initialize session - use initSession to store the prompt
+        initSession(topic, config);
+
+        const response = await generateCreatePlan({ topic, slideCount });
+
+        if (!response.success || !response.plans) {
+          throw new Error(response.error || 'Failed to generate plan');
+        }
+
+        setRemixPlans(response.plans);
+        setStage('remix-review');
+
+        toast.success(`Created ${response.plans.length} slides! Search Pinterest for images.`);
+      } catch (error) {
+        console.error('Error creating slideshow:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to create slideshow');
+        setStage('prompt');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [initSession, setRemixPlans, setStage]
+  );
 
   const createPlan = useCallback(
     async (prompt: string, config: ImageConfig) => {
@@ -362,7 +393,9 @@ export function useSlideshowGenerator() {
   return {
     session,
     isLoading,
-    // Original flow
+    // Create from scratch flow
+    createFromScratch,
+    // Original flow (deprecated for now)
     createPlan,
     generateImages,
     regenerateSlide,

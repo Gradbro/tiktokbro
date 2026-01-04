@@ -198,11 +198,6 @@ export default function MySlideshowsPage() {
                             {stage.label}
                           </span>
                         </div>
-                        {slideshow.prompt && (
-                          <p className="text-sm text-muted-foreground truncate">
-                            {slideshow.prompt}
-                          </p>
-                        )}
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Layers className="size-3" />

@@ -135,7 +135,7 @@ class SlideshowService {
 
     const [sessions, total] = await Promise.all([
       SlideshowSession.find()
-        .select('sessionId name prompt stage slides createdAt updatedAt')
+        .select('sessionId name prompt stage slides plans remixPlans createdAt updatedAt')
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -149,7 +149,7 @@ class SlideshowService {
         name: s.name,
         prompt: s.prompt,
         stage: s.stage,
-        slideCount: s.slides?.length || 0,
+        slideCount: s.remixPlans?.length || s.slides?.length || s.plans?.length || 0,
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,
       })),
@@ -168,7 +168,7 @@ class SlideshowService {
         { prompt: { $regex: query, $options: 'i' } },
       ],
     })
-      .select('sessionId name prompt stage slides createdAt updatedAt')
+      .select('sessionId name prompt stage slides plans remixPlans createdAt updatedAt')
       .sort({ updatedAt: -1 })
       .limit(limit)
       .lean();
@@ -178,7 +178,7 @@ class SlideshowService {
       name: s.name,
       prompt: s.prompt,
       stage: s.stage,
-      slideCount: s.slides?.length || 0,
+      slideCount: s.remixPlans?.length || s.slides?.length || s.plans?.length || 0,
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,
     }));
@@ -188,10 +188,26 @@ class SlideshowService {
    * Generate a name from available data
    */
   private generateName(data: SlideshowSessionData): string {
-    // Priority 1: Use prompt if available
-    if (data.prompt && data.prompt.trim()) {
-      const name = data.prompt.slice(0, 50).trim();
-      return name.length < data.prompt.length ? `${name}...` : name;
+    // Helper to clean and truncate text
+    const cleanText = (text: string, maxLen: number = 40): string => {
+      const cleaned = text
+        .replace(/\n+/g, ' ') // Replace newlines with spaces
+        .replace(/\s+/g, ' ') // Collapse multiple spaces
+        .trim();
+      if (cleaned.length <= maxLen) {
+        return cleaned;
+      }
+      // Cut at word boundary
+      const truncated = cleaned.slice(0, maxLen).replace(/\s+\S*$/, '');
+      return truncated + '...';
+    };
+
+    // Priority 1: Use first remix plan overlay (most relevant for display)
+    if (data.remixPlans && data.remixPlans.length > 0) {
+      const firstText = data.remixPlans[0].newOverlayText;
+      if (firstText) {
+        return cleanText(firstText);
+      }
     }
 
     // Priority 2: Use TikTok author name if available
@@ -199,19 +215,14 @@ class SlideshowService {
       return `Remix: @${data.tiktokData.authorName}`;
     }
 
-    // Priority 3: Use TikTok caption if available
-    if (data.tiktokData?.caption) {
-      const caption = data.tiktokData.caption.slice(0, 50).trim();
-      return caption.length < data.tiktokData.caption.length ? `${caption}...` : caption;
+    // Priority 3: Use prompt if available (but cleaned up)
+    if (data.prompt && data.prompt.trim()) {
+      return cleanText(data.prompt);
     }
 
-    // Priority 4: Use first remix plan overlay text
-    if (data.remixPlans && data.remixPlans.length > 0) {
-      const firstText = data.remixPlans[0].newOverlayText;
-      if (firstText) {
-        const name = firstText.slice(0, 50).trim();
-        return name.length < firstText.length ? `${name}...` : name;
-      }
+    // Priority 4: Use TikTok caption if available
+    if (data.tiktokData?.caption) {
+      return cleanText(data.tiktokData.caption);
     }
 
     // Fallback

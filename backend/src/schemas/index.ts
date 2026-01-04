@@ -19,6 +19,15 @@ export const RemixPlanSchema = z.object({
 export const RemixPlanArraySchema = z.array(RemixPlanSchema);
 export type RemixPlan = z.infer<typeof RemixPlanSchema>;
 
+export const CreatePlanItemSchema = z.object({
+  pinterestQuery: z.string(),
+  overlayText: z.string(),
+  layoutNotes: z.string(),
+});
+
+export const CreatePlanArraySchema = z.array(CreatePlanItemSchema);
+export type CreatePlanItem = z.infer<typeof CreatePlanItemSchema>;
+
 export const SlideAnalysisSchema = z.object({
   imageDescription: z.string(),
   backgroundType: z.enum(['photo', 'illustration', 'gradient', 'solid', 'collage']),
