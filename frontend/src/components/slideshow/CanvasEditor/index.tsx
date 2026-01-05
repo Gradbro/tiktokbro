@@ -104,7 +104,6 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-    // Get device pixel ratio once on mount for retina display support
     const dpr = useRef(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
 
     const { render, exportToBlob, hitTest } = useCanvasRenderer({ width, height });
