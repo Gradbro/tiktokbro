@@ -268,6 +268,17 @@ export interface GeneratedAvatarImage {
   selected: boolean;
 }
 
+export interface PendingJob {
+  falRequestId: string;
+  falModel: string;
+  type: 'images' | 'video';
+  status: 'queued' | 'in_progress' | 'complete' | 'error';
+  submittedAt: string;
+  completedAt?: string;
+  error?: string;
+  queuePosition?: number;
+}
+
 export interface UGCReactionSession {
   sessionId: string;
   name: string;
@@ -280,6 +291,7 @@ export interface UGCReactionSession {
   generatedVideoUrl?: string;
   generatedVideoBase64?: string;
   error?: string;
+  pendingJob?: PendingJob;
   createdAt?: string;
   updatedAt?: string;
 }

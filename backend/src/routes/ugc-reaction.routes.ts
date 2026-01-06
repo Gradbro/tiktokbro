@@ -44,6 +44,23 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
+ * GET /api/ugc-reactions/gallery
+ * List completed sessions for gallery display
+ * NOTE: This MUST be before /:sessionId route to avoid 'gallery' being matched as sessionId
+ */
+router.get('/gallery', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+
+    const result = await ugcReactionService.listCompleted(page, limit);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/ugc-reactions/:sessionId
  * Get a specific session
  */
@@ -222,7 +239,7 @@ router.post('/:sessionId/select-image', async (req: Request, res: Response, next
 
 /**
  * POST /api/ugc-reactions/:sessionId/generate-video
- * Generate reaction video using Kling 2.6
+ * Generate reaction video using Kling 2.6 (LEGACY - blocking)
  */
 router.post(
   '/:sessionId/generate-video',
@@ -243,5 +260,67 @@ router.post(
     }
   }
 );
+
+// ==================== ASYNC QUEUE ENDPOINTS ====================
+
+/**
+ * POST /api/ugc-reactions/:sessionId/submit-video
+ * Submit video generation to queue (non-blocking)
+ * Returns immediately with job info for status tracking
+ */
+router.post('/:sessionId/submit-video', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sessionId } = req.params;
+
+    const result = await ugcReactionService.submitVideoGeneration(sessionId);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/ugc-reactions/:sessionId/job-status
+ * Check the status of pending job
+ */
+router.get('/:sessionId/job-status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sessionId } = req.params;
+
+    const status = await ugcReactionService.checkJobStatus(sessionId);
+
+    res.json({
+      success: true,
+      data: status,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/ugc-reactions/:sessionId/job-result
+ * Fetch the result of a completed job and update session
+ */
+router.post('/:sessionId/job-result', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sessionId } = req.params;
+
+    const session = await ugcReactionService.fetchJobResult(sessionId);
+
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' });
+      return;
+    }
+
+    res.json({ success: true, data: session });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;

@@ -337,7 +337,7 @@ export async function selectGeneratedImage(
 }
 
 /**
- * Generate reaction video using Kling 2.6
+ * Generate reaction video using Kling 2.6 (LEGACY - blocking)
  */
 export async function generateReactionVideo(
   sessionId: string
@@ -356,4 +356,77 @@ export async function deleteUGCReactionSession(
   return fetchApi(`/ugc-reactions/${sessionId}`, {
     method: 'DELETE',
   });
+}
+
+// ==================== Async Queue API ====================
+
+export interface SubmitVideoResponse {
+  success: boolean;
+  data?: {
+    sessionId: string;
+    falRequestId: string;
+    status: string;
+  };
+  error?: string;
+}
+
+export interface JobStatusResponse {
+  success: boolean;
+  data?: {
+    status: 'queued' | 'in_progress' | 'complete' | 'error' | 'no_job';
+    queuePosition?: number;
+    error?: string;
+  };
+  error?: string;
+}
+
+export interface GalleryListResponse {
+  success: boolean;
+  sessions?: Array<{
+    sessionId: string;
+    name: string;
+    stage: string;
+    createdAt: string;
+    updatedAt: string;
+    thumbnailUrl?: string;
+  }>;
+  total?: number;
+  pages?: number;
+  error?: string;
+}
+
+/**
+ * Submit video generation to queue (non-blocking)
+ * Returns immediately with job info for status tracking
+ */
+export async function submitVideoGeneration(sessionId: string): Promise<SubmitVideoResponse> {
+  return fetchApi<SubmitVideoResponse>(`/ugc-reactions/${sessionId}/submit-video`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Check the status of a pending job
+ */
+export async function getJobStatus(sessionId: string): Promise<JobStatusResponse> {
+  return fetchApi<JobStatusResponse>(`/ugc-reactions/${sessionId}/job-status`);
+}
+
+/**
+ * Fetch the result of a completed job and update session
+ */
+export async function fetchJobResult(sessionId: string): Promise<UGCReactionSessionResponse> {
+  return fetchApi<UGCReactionSessionResponse>(`/ugc-reactions/${sessionId}/job-result`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Get completed sessions for gallery display
+ */
+export async function getGallerySessions(
+  page: number = 1,
+  limit: number = 20
+): Promise<GalleryListResponse> {
+  return fetchApi<GalleryListResponse>(`/ugc-reactions/gallery?page=${page}&limit=${limit}`);
 }

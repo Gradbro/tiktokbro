@@ -15,6 +15,36 @@ const GeneratedImageSchema = new Schema(
   { _id: false }
 );
 
+// Sub-schema for pending async jobs
+const PendingJobSchema = new Schema(
+  {
+    falRequestId: { type: String, required: true },
+    falModel: { type: String, required: true },
+    type: { type: String, enum: ['images', 'video'], required: true },
+    status: {
+      type: String,
+      enum: ['queued', 'in_progress', 'complete', 'error'],
+      default: 'queued',
+    },
+    submittedAt: { type: Date, default: Date.now },
+    completedAt: { type: Date },
+    error: { type: String },
+    queuePosition: { type: Number },
+  },
+  { _id: false }
+);
+
+export interface IPendingJob {
+  falRequestId: string;
+  falModel: string;
+  type: 'images' | 'video';
+  status: 'queued' | 'in_progress' | 'complete' | 'error';
+  submittedAt: Date;
+  completedAt?: Date;
+  error?: string;
+  queuePosition?: number;
+}
+
 export interface IUGCReactionSession extends Document {
   sessionId: string;
   name: string;
@@ -38,6 +68,7 @@ export interface IUGCReactionSession extends Document {
   generatedVideoUrl?: string;
   generatedVideoBase64?: string; // Store video as base64 for persistence
   error?: string;
+  pendingJob?: IPendingJob; // Current async job being processed
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +98,7 @@ const UGCReactionSessionSchema = new Schema<IUGCReactionSession>(
     generatedVideoUrl: { type: String },
     generatedVideoBase64: { type: String },
     error: { type: String },
+    pendingJob: PendingJobSchema,
   },
   {
     timestamps: true,

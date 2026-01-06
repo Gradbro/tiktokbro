@@ -116,68 +116,58 @@ export default function MySlideshowsPage() {
     : slideshows;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-background/80 backdrop-blur-xl sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-                My Slideshows
-              </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {total} {total === 1 ? 'project' : 'projects'}
-              </p>
-            </div>
-            <Button onClick={handleCreateNew} className="font-medium gap-2">
-              <Plus className="size-4" />
-              New Slideshow
-            </Button>
-          </div>
-
-          {/* Search */}
-          <div className="mt-4 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search slideshows..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-      </div>
-
+    <div className="h-full bg-background">
       {/* Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-4">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 w-48 text-sm"
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {total} {total === 1 ? 'project' : 'projects'}
+            </span>
+          </div>
+          <Button onClick={handleCreateNew} size="sm" className="font-medium gap-1.5 h-8">
+            <Plus className="size-3.5" />
+            New
+          </Button>
+        </div>
         {isLoading && slideshows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <Loader2 className="size-8 animate-spin mb-4" />
-            <p>Loading slideshows...</p>
+            <Loader2 className="size-5 animate-spin mb-2" />
+            <p className="text-xs">Loading...</p>
           </div>
         ) : filteredSlideshows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="size-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <Sparkles className="size-8 text-muted-foreground" />
+            <div className="size-12 rounded-xl bg-muted flex items-center justify-center mb-3">
+              <Sparkles className="size-5 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-1">
+            <h3 className="text-sm font-medium text-foreground mb-1">
               {searchQuery ? 'No results found' : 'No slideshows yet'}
             </h3>
-            <p className="text-sm text-muted-foreground mb-6">
+            <p className="text-xs text-muted-foreground mb-4">
               {searchQuery
                 ? 'Try a different search term'
                 : 'Create your first slideshow to get started'}
             </p>
             {!searchQuery && (
-              <Button onClick={handleCreateNew} variant="outline">
-                <Plus className="size-4 mr-2" />
+              <Button onClick={handleCreateNew} variant="outline" size="sm">
+                <Plus className="size-3.5 mr-1.5" />
                 Create Slideshow
               </Button>
             )}
           </div>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-1.5">
             {filteredSlideshows.map((slideshow) => {
               const stage = stageLabels[slideshow.stage] || stageLabels.prompt;
 
@@ -187,21 +177,23 @@ export default function MySlideshowsPage() {
                   href={`/slideshows/${slideshow.sessionId}`}
                   className="group block"
                 >
-                  <div className="relative bg-card hover:bg-accent border rounded-xl p-4 transition-all duration-200">
-                    <div className="flex items-start justify-between gap-4">
+                  <div className="relative bg-card hover:bg-accent/50 border rounded-lg p-3 transition-all duration-150">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium text-foreground truncate">{slideshow.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-medium text-foreground truncate">
+                            {slideshow.name}
+                          </h3>
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium text-white ${stage.color}`}
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${stage.color}`}
                           >
                             {stage.label}
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Layers className="size-3" />
-                            {slideshow.slideCount} slides
+                            {slideshow.slideCount}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="size-3" />
@@ -213,9 +205,9 @@ export default function MySlideshowsPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           onClick={(e) => e.preventDefault()}
-                          className="size-8 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground"
+                          className="size-7 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center rounded-md hover:bg-accent"
                         >
-                          <MoreHorizontal className="size-4" />
+                          <MoreHorizontal className="size-3.5" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
@@ -226,9 +218,9 @@ export default function MySlideshowsPage() {
                             disabled={isDuplicating === slideshow.sessionId}
                           >
                             {isDuplicating === slideshow.sessionId ? (
-                              <Loader2 className="size-4 mr-2 animate-spin" />
+                              <Loader2 className="size-3.5 mr-2 animate-spin" />
                             ) : (
-                              <Copy className="size-4 mr-2" />
+                              <Copy className="size-3.5 mr-2" />
                             )}
                             Duplicate
                           </DropdownMenuItem>
@@ -239,7 +231,7 @@ export default function MySlideshowsPage() {
                             }}
                             className="text-destructive focus:text-destructive"
                           >
-                            <Trash2 className="size-4 mr-2" />
+                            <Trash2 className="size-3.5 mr-2" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -254,12 +246,13 @@ export default function MySlideshowsPage() {
 
         {/* Pagination */}
         {pages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-8">
+          <div className="flex items-center justify-center gap-1.5 mt-6">
             {Array.from({ length: pages }, (_, i) => i + 1).map((page) => (
               <Button
                 key={page}
-                variant={page === currentPage ? 'default' : 'outline'}
+                variant={page === currentPage ? 'default' : 'ghost'}
                 size="sm"
+                className="h-7 w-7 p-0 text-xs"
                 onClick={() => loadList(page)}
               >
                 {page}

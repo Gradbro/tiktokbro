@@ -12,7 +12,7 @@ export function AppShell({ children }: AppShellProps) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <main className="flex-1 overflow-hidden h-full p-2">{children}</main>
+        <main className="flex-1 overflow-auto h-screen">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

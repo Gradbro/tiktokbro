@@ -136,7 +136,102 @@ export async function generateReactionVideo(
 }
 
 /**
+ * Queue-based job submission and status tracking
+ */
+
+export interface QueueSubmitResult {
+  requestId: string;
+  statusUrl: string;
+}
+
+export interface QueueStatusResult {
+  status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+  queuePosition?: number;
+  logs?: Array<{ message: string; timestamp: string }>;
+}
+
+export interface QueueResultData {
+  requestId: string;
+  data: unknown;
+}
+
+/**
+ * Submit a job to FAL queue (non-blocking)
+ * Returns immediately with requestId for status tracking
+ */
+export async function submitToQueue(
+  endpoint: string,
+  input: Record<string, unknown>
+): Promise<QueueSubmitResult> {
+  initFalClient();
+
+  const result = await fal.queue.submit(endpoint, { input });
+
+  return {
+    requestId: result.request_id,
+    statusUrl: `https://queue.fal.run/${endpoint}/requests/${result.request_id}/status`,
+  };
+}
+
+/**
  * Check the status of a queued FAL request
+ */
+export async function getQueueStatus(
+  endpoint: string,
+  requestId: string
+): Promise<QueueStatusResult> {
+  initFalClient();
+
+  const status = await fal.queue.status(endpoint, {
+    requestId,
+    logs: true,
+  });
+
+  return {
+    status: status.status as QueueStatusResult['status'],
+    queuePosition: (status as { queue_position?: number }).queue_position,
+    logs: (status as { logs?: Array<{ message: string; timestamp: string }> }).logs,
+  };
+}
+
+/**
+ * Get the result of a completed FAL queue request
+ */
+export async function getQueueResult(
+  endpoint: string,
+  requestId: string
+): Promise<QueueResultData> {
+  initFalClient();
+
+  const result = await fal.queue.result(endpoint, { requestId });
+
+  return {
+    requestId,
+    data: result.data,
+  };
+}
+
+/**
+ * Submit video generation to queue (non-blocking)
+ */
+export async function submitVideoToQueue(
+  avatarImageUrl: string,
+  reactionVideoUrl: string,
+  prompt?: string
+): Promise<QueueSubmitResult> {
+  const endpoint = 'fal-ai/kling-video/v2.6/standard/motion-control';
+
+  return submitToQueue(endpoint, {
+    image_url: avatarImageUrl,
+    video_url: reactionVideoUrl,
+    prompt: prompt || 'A person performing the action naturally',
+    keep_original_sound: true,
+    character_orientation: 'video',
+  });
+}
+
+/**
+ * Legacy: Check the status of a queued FAL request (deprecated, use getQueueStatus)
  */
 export async function checkFalQueueStatus(
   endpoint: string,
@@ -160,5 +255,9 @@ export const falService = {
   uploadToFal,
   generateAvatarImages,
   generateReactionVideo,
+  submitToQueue,
+  getQueueStatus,
+  getQueueResult,
+  submitVideoToQueue,
   checkFalQueueStatus,
 };

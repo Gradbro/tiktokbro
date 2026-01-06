@@ -228,29 +228,65 @@ export function ReactionProvider({ children }: { children: ReactNode }) {
       URL.revokeObjectURL(state.avatarPreviewUrl);
     }
     dispatch({ type: 'CLEAR_AVATAR' });
-  }, [state.avatarPreviewUrl]);
+    // Also reset session state that depends on avatar
+    if (state.session) {
+      dispatch({
+        type: 'UPDATE_SESSION',
+        payload: {
+          avatarImageUrl: undefined,
+          generatedImages: undefined,
+          selectedImageUrl: undefined,
+          generatedVideoUrl: undefined,
+          stage: 'upload',
+        },
+      });
+    }
+  }, [state.avatarPreviewUrl, state.session]);
 
   // Select category
   const selectCategory = useCallback((category: string | null) => {
     dispatch({ type: 'SET_SELECTED_CATEGORY', payload: category });
   }, []);
 
-  // Select reaction
+  // Helper to ensure session exists (creates one lazily if needed)
+  const _ensureSession = useCallback(async (): Promise<string | null> => {
+    if (state.session) {
+      return state.session.sessionId;
+    }
+    // Create session lazily
+    try {
+      dispatch({ type: 'SET_LOADING', payload: { loading: true, message: 'Creating session...' } });
+      const sessionId = uuidv4();
+      const response = await api.createUGCReactionSession(sessionId);
+      if (response.success && response.data) {
+        dispatch({ type: 'SET_SESSION', payload: response.data });
+        return response.data.sessionId;
+      } else {
+        dispatch({ type: 'SET_ERROR', payload: response.error || 'Failed to create session' });
+        return null;
+      }
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to create session',
+      });
+      return null;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: { loading: false } });
+    }
+  }, [state.session]);
+
+  // Select reaction (LOCAL ONLY - no DB call, session created on image generation)
   const selectReactionAction = useCallback(
     async (reactionId: string) => {
-      if (!state.session) return;
       try {
         dispatch({
           type: 'SET_LOADING',
-          payload: { loading: true, message: 'Selecting reaction...' },
+          payload: { loading: true, message: 'Loading reaction...' },
         });
-        const response = await api.selectReaction(state.session.sessionId, reactionId);
-        if (response.success && response.data) {
-          dispatch({ type: 'SET_SESSION', payload: response.data });
-          await loadReaction(reactionId);
-        } else {
-          dispatch({ type: 'SET_ERROR', payload: response.error || 'Failed to select reaction' });
-        }
+
+        // Just load the reaction details - don't create session yet
+        await loadReaction(reactionId);
       } catch (error) {
         dispatch({
           type: 'SET_ERROR',
@@ -260,67 +296,93 @@ export function ReactionProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_LOADING', payload: { loading: false } });
       }
     },
-    [state.session, loadReaction]
+    [loadReaction]
   );
 
-  // Upload avatar
+  // Upload avatar - just keeps in local state, no DB call
   const uploadAvatar = useCallback(async () => {
-    if (!state.session || !state.avatarFile) return;
-    try {
-      dispatch({ type: 'SET_LOADING', payload: { loading: true, message: 'Uploading avatar...' } });
+    // Avatar is already in state.avatarFile - nothing to upload yet
+    // Will be uploaded when generating images
+  }, []);
 
-      // Convert file to base64
+  // Generate avatar images - THIS is when we create the session
+  const generateImages = useCallback(async () => {
+    if (!state.avatarFile || !state.selectedReaction) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: 'Please upload an avatar and select a reaction first',
+      });
+      return;
+    }
+
+    try {
+      dispatch({
+        type: 'SET_LOADING',
+        payload: {
+          loading: true,
+          message: 'Generating images... This may take 30-60 seconds.',
+        },
+      });
+
+      // Convert avatar to base64
       const reader = new FileReader();
       const base64Promise = new Promise<string>((resolve, reject) => {
         reader.onload = () => {
           const result = reader.result as string;
-          // Remove data URL prefix
           const base64 = result.split(',')[1];
           resolve(base64);
         };
         reader.onerror = reject;
       });
       reader.readAsDataURL(state.avatarFile);
-      const base64Data = await base64Promise;
+      const avatarBase64 = await base64Promise;
 
-      const response = await api.uploadAvatarImage(
-        state.session.sessionId,
-        base64Data,
+      // Create session, upload avatar, select reaction, and generate images - all in one flow
+      const sessionId = uuidv4();
+
+      // 1. Create session
+      const createResponse = await api.createUGCReactionSession(
+        sessionId,
+        `Reaction: ${state.selectedReaction.name}`
+      );
+      if (!createResponse.success || !createResponse.data) {
+        dispatch({
+          type: 'SET_ERROR',
+          payload: createResponse.error || 'Failed to create session',
+        });
+        return;
+      }
+
+      // 2. Upload avatar
+      const uploadResponse = await api.uploadAvatarImage(
+        sessionId,
+        avatarBase64,
         state.avatarFile.type
       );
-      if (response.success && response.data) {
-        dispatch({ type: 'SET_SESSION', payload: response.data });
-      } else {
-        dispatch({ type: 'SET_ERROR', payload: response.error || 'Failed to upload avatar' });
+      if (!uploadResponse.success) {
+        dispatch({ type: 'SET_ERROR', payload: uploadResponse.error || 'Failed to upload avatar' });
+        return;
       }
-    } catch (error) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: error instanceof Error ? error.message : 'Failed to upload avatar',
-      });
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: { loading: false } });
-    }
-  }, [state.session, state.avatarFile]);
 
-  // Generate avatar images
-  const generateImages = useCallback(async () => {
-    if (!state.session) return;
-    try {
-      dispatch({
-        type: 'SET_LOADING',
-        payload: {
-          loading: true,
-          message: 'Generating avatar images... This may take 30-60 seconds.',
-        },
-      });
-      dispatch({ type: 'UPDATE_SESSION', payload: { stage: 'generating-images' } });
+      // 3. Select reaction
+      const selectResponse = await api.selectReaction(sessionId, state.selectedReaction.reactionId);
+      if (!selectResponse.success) {
+        dispatch({
+          type: 'SET_ERROR',
+          payload: selectResponse.error || 'Failed to select reaction',
+        });
+        return;
+      }
 
-      const response = await api.generateAvatarImages(state.session.sessionId);
-      if (response.success && response.data) {
-        dispatch({ type: 'SET_SESSION', payload: response.data });
+      // 4. Generate images
+      const generateResponse = await api.generateAvatarImages(sessionId);
+      if (generateResponse.success && generateResponse.data) {
+        dispatch({ type: 'SET_SESSION', payload: generateResponse.data });
       } else {
-        dispatch({ type: 'SET_ERROR', payload: response.error || 'Failed to generate images' });
+        dispatch({
+          type: 'SET_ERROR',
+          payload: generateResponse.error || 'Failed to generate images',
+        });
       }
     } catch (error) {
       dispatch({
@@ -330,7 +392,7 @@ export function ReactionProvider({ children }: { children: ReactNode }) {
     } finally {
       dispatch({ type: 'SET_LOADING', payload: { loading: false } });
     }
-  }, [state.session]);
+  }, [state.avatarFile, state.selectedReaction]);
 
   // Select generated image
   const selectImage = useCallback(
@@ -385,15 +447,15 @@ export function ReactionProvider({ children }: { children: ReactNode }) {
     }
   }, [state.session]);
 
-  // Reset and start fresh
+  // Reset and start fresh (don't create new session - will be created lazily)
   const reset = useCallback(async () => {
     if (state.avatarPreviewUrl) {
       URL.revokeObjectURL(state.avatarPreviewUrl);
     }
     dispatch({ type: 'RESET' });
-    // Create a new session after resetting
-    await initSession();
-  }, [state.avatarPreviewUrl, initSession]);
+    // Just reload reactions/categories - session will be created lazily when needed
+    await Promise.all([loadReactions(), loadCategories()]);
+  }, [state.avatarPreviewUrl, loadReactions, loadCategories]);
 
   // Clear error
   const clearError = useCallback(() => {
