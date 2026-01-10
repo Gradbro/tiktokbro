@@ -27,7 +27,12 @@ router.get('/proxy', requireAuth, async (req: Request, res: Response) => {
     const contentType = response.headers['content-type'] || 'image/jpeg';
     res.set('Content-Type', contentType);
     res.set('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
-    res.set('Access-Control-Allow-Origin', '*'); // Allow canvas to load with crossOrigin
+    // CORS headers for canvas with credentials
+    const origin = req.get('Origin');
+    if (origin) {
+      res.set('Access-Control-Allow-Origin', origin);
+      res.set('Access-Control-Allow-Credentials', 'true');
+    }
     res.send(Buffer.from(response.data));
   } catch (error) {
     console.error('Image proxy error:', error);

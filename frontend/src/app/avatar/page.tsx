@@ -1,10 +1,12 @@
 'use client';
 
 import { Video, Sparkles } from 'lucide-react';
+import { PageTitle } from '@/components/layout/PageTitle';
 
 export default function AvatarPage() {
   return (
     <div className="flex flex-col items-center justify-center h-full bg-muted/20">
+      <PageTitle title="AI Avatars" />
       <div className="text-center max-w-sm">
         <div className="inline-flex items-center justify-center size-14 rounded-xl bg-primary/10 mb-4">
           <Video className="size-6 text-primary" />

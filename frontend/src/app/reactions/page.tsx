@@ -6,6 +6,7 @@ import { ReactionWorkspace } from '@/components/reactions/ReactionWorkspace';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { PageTitle } from '@/components/layout/PageTitle';
 
 function ReactionCreatorContent() {
   const { state, loadReactions, loadCategories, clearError } = useReactionContext();
@@ -33,6 +34,7 @@ function ReactionCreatorContent() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      <PageTitle title="UGC Reactions" />
       {/* Error banner */}
       {error && (
         <Alert variant="destructive" className="m-4 mb-0">

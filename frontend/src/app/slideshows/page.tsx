@@ -37,6 +37,7 @@ import { useSlideshowPersistence } from '@/hooks/useSlideshowPersistence';
 import { SlideshowListItem } from '@/types';
 import { duplicateSlideshow } from '@/lib/api-client';
 import { toast } from 'sonner';
+import { PageTitle } from '@/components/layout/PageTitle';
 
 const stageLabels: Record<string, { label: string; color: string }> = {
   prompt: { label: 'Draft', color: 'bg-zinc-500' },
@@ -117,6 +118,7 @@ export default function MySlideshowsPage() {
 
   return (
     <div className="h-full bg-background">
+      <PageTitle title="Slideshows" />
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 py-4">
         {/* Toolbar */}

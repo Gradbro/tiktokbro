@@ -1,114 +1,213 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark, .dark *));
+
+/* =============================================================================
+   SHORTSBRO DESIGN SYSTEM - Color Tokens
+   
+   Based on research from:
+   - Radix UI Colors (12-step scale methodology)
+   - Vercel Geist Design System (P3 color support)
+   - Material Design 3 (tonal elevation)
+   - Apple HIG (base/elevated surfaces)
+   - Linear App (unified dark surfaces)
+   
+   OKLCH Format: oklch(Lightness Chroma Hue)
+   - L: Perceptual lightness (0-1)
+   - C: Chroma/saturation (0 = gray, ~0.37 max)
+   - H: Hue angle (0-360)
+   ============================================================================= */
 
 :root {
-  --background: oklch(0.9911 0 0);
-  --foreground: oklch(0.2931 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2931 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2931 0 0);
-  --primary: oklch(0.7049 0.1867 47.6044);
+  /* ---------------------------------------------------------------------------
+     LIGHT MODE - Soft gray theme (darker, not stark white)
+     
+     Design principles:
+     - Muted gray backgrounds (NOT bright white)
+     - Subtle elevation via lighter cards
+     - Neutral with very slight warmth
+     - High contrast text for readability
+     - Clean, professional, easy on eyes
+     --------------------------------------------------------------------------- */
+
+  /* Surfaces - Soft neutral grays (very subtle warm undertone) */
+  --background: oklch(0.94 0.005 80); /* Soft gray - NOT white */
+  --foreground: oklch(0.15 0.01 60); /* Near-black text */
+
+  --card: oklch(0.98 0.003 80); /* Lighter cards for elevation */
+  --card-foreground: oklch(0.15 0.01 60);
+
+  --popover: oklch(0.98 0.003 80); /* Same as card - clean white */
+  --popover-foreground: oklch(0.15 0.01 60);
+
+  /* Brand accent - Warm orange */
+  --primary: oklch(0.65 0.19 45); /* Rich orange */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.9761 0 0);
-  --secondary-foreground: oklch(0.2931 0 0);
-  --muted: oklch(0.9551 0 0);
-  --muted-foreground: oklch(0.5103 0 0);
-  --accent: oklch(0.9761 0 0);
-  --accent-foreground: oklch(0.2931 0 0);
-  --destructive: oklch(0.6368 0.2078 25.3313);
+
+  /* Interactive surfaces */
+  --secondary: oklch(0.92 0.006 80); /* Slightly darker gray */
+  --secondary-foreground: oklch(0.15 0.01 60);
+
+  --muted: oklch(0.91 0.006 80); /* Visible muted bg */
+  --muted-foreground: oklch(0.42 0.01 60); /* Secondary text */
+
+  --accent: oklch(0.9 0.008 80); /* Hover/focus state */
+  --accent-foreground: oklch(0.15 0.01 60);
+
+  /* Semantic */
+  --destructive: oklch(0.58 0.2 25); /* Red */
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.9067 0 0);
-  --input: oklch(0.9761 0 0);
-  --ring: oklch(0.7049 0.1867 47.6044);
-  --chart-1: oklch(0.7049 0.1867 47.6044);
-  --chart-2: oklch(0.7576 0.159 55.9344);
-  --chart-3: oklch(0.8366 0.1165 66.2896);
-  --chart-4: oklch(0.9015 0.0729 70.6972);
-  --chart-5: oklch(0.9542 0.0372 75.1644);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.2931 0 0);
-  --sidebar-primary: oklch(0.7049 0.1867 47.6044);
+
+  /* Borders & inputs - visible but subtle */
+  --border: oklch(0.78 0.01 80); /* Darker border for better visibility */
+  --input: oklch(0.78 0.01 80); /* Same as border - used for input borders */
+  --ring: oklch(0.65 0.19 45); /* Focus ring = primary */
+
+  /* Charts - Orange gradient */
+  --chart-1: oklch(0.65 0.19 45);
+  --chart-2: oklch(0.7 0.17 50);
+  --chart-3: oklch(0.76 0.14 56);
+  --chart-4: oklch(0.82 0.1 62);
+  --chart-5: oklch(0.88 0.06 68);
+
+  /* Sidebar - Matches background for unified feel */
+  --sidebar: oklch(0.96 0.004 80); /* Slightly lighter than bg */
+  --sidebar-foreground: oklch(0.15 0.01 60);
+  --sidebar-primary: oklch(0.65 0.19 45);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.9761 0 0);
-  --sidebar-accent-foreground: oklch(0.2931 0 0);
-  --sidebar-border: oklch(0.9067 0 0);
-  --sidebar-ring: oklch(0.7049 0.1867 47.6044);
-  --font-sans: Inter, sans-serif;
+  --sidebar-accent: oklch(0.9 0.008 80); /* Hover state */
+  --sidebar-accent-foreground: oklch(0.15 0.01 60);
+  --sidebar-border: oklch(0.87 0.006 80);
+  --sidebar-ring: oklch(0.65 0.19 45);
+
+  /* Typography */
+  --font-sans: Inter, system-ui, -apple-system, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-  --font-mono: 'Fira Code', 'JetBrains Mono', monospace;
-  --radius: 0.5rem;
-  --shadow-x: 0px;
-  --shadow-y: 0px;
-  --shadow-blur: 0px;
-  --shadow-spread: 0px;
-  --shadow-opacity: 0;
-  --shadow-color: #000000;
-  --shadow-2xs: 0px 0px 0px 0px hsl(0 0% 0% / 0);
-  --shadow-xs: 0px 0px 0px 0px hsl(0 0% 0% / 0);
-  --shadow-sm: 0px 0px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0);
-  --shadow: 0px 0px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0);
-  --shadow-md: 0px 0px 0px 0px hsl(0 0% 0% / 0), 0px 2px 4px -1px hsl(0 0% 0% / 0);
-  --shadow-lg: 0px 0px 0px 0px hsl(0 0% 0% / 0), 0px 4px 6px -1px hsl(0 0% 0% / 0);
-  --shadow-xl: 0px 0px 0px 0px hsl(0 0% 0% / 0), 0px 8px 10px -1px hsl(0 0% 0% / 0);
-  --shadow-2xl: 0px 0px 0px 0px hsl(0 0% 0% / 0);
-  --tracking-normal: -0.01em;
+  --font-mono: 'Fira Code', 'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Spacing & Radius */
+  --radius: 0.625rem;
   --spacing: 0.25rem;
+
+  /* Shadows - Soft, layered for depth (more visible in light mode) */
+  --shadow-2xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-xs: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 2px 4px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-md: 0 6px 10px -2px rgb(0 0 0 / 0.1), 0 3px 6px -3px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.12), 0 4px 6px -4px rgb(0 0 0 / 0.06);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.14), 0 8px 10px -6px rgb(0 0 0 / 0.06);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.22);
+
+  /* Letter spacing */
+  --tracking-normal: -0.011em;
+
+  /* Sidebar responsive widths */
+  --sidebar-width: 13rem;
+  --sidebar-width-icon: 3.5rem;
 }
 
 .dark {
-  --background: oklch(0.1822 0 0);
-  --foreground: oklch(0.9067 0 0);
-  --card: oklch(0.235 0 0);
-  --card-foreground: oklch(0.9067 0 0);
-  --popover: oklch(0.235 0 0);
-  --popover-foreground: oklch(0.9067 0 0);
-  --primary: oklch(0.7049 0.1867 47.6044);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.2768 0 0);
-  --secondary-foreground: oklch(0.9067 0 0);
-  --muted: oklch(0.2768 0 0);
-  --muted-foreground: oklch(0.683 0 0);
-  --accent: oklch(0.2768 0 0);
-  --accent-foreground: oklch(0.9067 0 0);
-  --destructive: oklch(0.6368 0.2078 25.3313);
+  /* ---------------------------------------------------------------------------
+     DARK MODE - Proper tonal hierarchy
+     
+     Sidebar (base): 0.16
+     Background (content): 0.19  
+     Card (elevated): 0.22
+     Accent/hover: 0.25
+     Border: 0.28
+     --------------------------------------------------------------------------- */
+
+  /* Main content area */
+  --background: oklch(0.19 0 0);
+  --foreground: oklch(0.93 0 0);
+
+  /* Cards - elevated surfaces */
+  --card: oklch(0.22 0 0);
+  --card-foreground: oklch(0.93 0 0);
+
+  /* Popovers/dropdowns - highest elevation */
+  --popover: oklch(0.25 0 0);
+  --popover-foreground: oklch(0.93 0 0);
+
+  /* Brand accent */
+  --primary: oklch(0.7 0.18 45);
+  --primary-foreground: oklch(0.15 0 0);
+
+  /* Interactive surfaces */
+  --secondary: oklch(0.22 0 0);
+  --secondary-foreground: oklch(0.93 0 0);
+
+  --muted: oklch(0.22 0 0);
+  --muted-foreground: oklch(0.55 0 0);
+
+  --accent: oklch(0.25 0 0);
+  --accent-foreground: oklch(0.93 0 0);
+
+  /* Semantic */
+  --destructive: oklch(0.6 0.18 25);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.36 0 0);
-  --input: oklch(0.2768 0 0);
-  --ring: oklch(0.7049 0.1867 47.6044);
-  --chart-1: oklch(0.7049 0.1867 47.6044);
-  --chart-2: oklch(0.7576 0.159 55.9344);
-  --chart-3: oklch(0.8366 0.1165 66.2896);
-  --chart-4: oklch(0.9015 0.0729 70.6972);
-  --chart-5: oklch(0.9542 0.0372 75.1644);
-  --sidebar: oklch(0.1822 0 0);
-  --sidebar-foreground: oklch(0.9067 0 0);
-  --sidebar-primary: oklch(0.7049 0.1867 47.6044);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.2768 0 0);
-  --sidebar-accent-foreground: oklch(0.9067 0 0);
-  --sidebar-border: oklch(0.36 0 0);
-  --sidebar-ring: oklch(0.7049 0.1867 47.6044);
-  --font-sans: Inter, sans-serif;
+
+  /* Borders & inputs */
+  --border: oklch(0.28 0 0);
+  --input: oklch(0.19 0 0);
+  --ring: oklch(0.7 0.18 45);
+
+  /* Charts */
+  --chart-1: oklch(0.7 0.18 45);
+  --chart-2: oklch(0.74 0.16 50);
+  --chart-3: oklch(0.78 0.13 55);
+  --chart-4: oklch(0.82 0.09 60);
+  --chart-5: oklch(0.86 0.05 65);
+
+  /* Sidebar - darker base layer */
+  --sidebar: oklch(0.18 0 0);
+  --sidebar-foreground: oklch(0.93 0 0);
+  --sidebar-primary: oklch(0.7 0.18 45);
+  --sidebar-primary-foreground: oklch(0.15 0 0);
+  --sidebar-accent: oklch(0.24 0 0);
+  --sidebar-accent-foreground: oklch(0.93 0 0);
+  --sidebar-border: oklch(0.26 0 0);
+  --sidebar-ring: oklch(0.7 0.18 45);
+
+  /* Typography (inherited) */
+  --font-sans: Inter, system-ui, -apple-system, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-  --font-mono: 'Fira Code', 'JetBrains Mono', monospace;
-  --radius: 0.5rem;
-  --shadow-x: 0px;
-  --shadow-y: 0px;
-  --shadow-blur: 0px;
-  --shadow-spread: 0px;
-  --shadow-opacity: 0;
-  --shadow-color: #000000;
-  --shadow-2xs: 0px 0px 0px 0px hsl(0 0% 0% / 0);
-  --shadow-xs: 0px 0px 0px 0px hsl(0 0% 0% / 0);
-  --shadow-sm: 0px 0px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0);
-  --shadow: 0px 0px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0);
-  --shadow-md: 0px 0px 0px 0px hsl(0 0% 0% / 0), 0px 2px 4px -1px hsl(0 0% 0% / 0);
-  --shadow-lg: 0px 0px 0px 0px hsl(0 0% 0% / 0), 0px 4px 6px -1px hsl(0 0% 0% / 0);
-  --shadow-xl: 0px 0px 0px 0px hsl(0 0% 0% / 0), 0px 8px 10px -1px hsl(0 0% 0% / 0);
-  --shadow-2xl: 0px 0px 0px 0px hsl(0 0% 0% / 0);
+  --font-mono: 'Fira Code', 'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Spacing & Radius (inherited) */
+  --radius: 0.625rem;
+  --spacing: 0.25rem;
+
+  /* Shadows - Subtle (tonal elevation does most of the work) */
+  --shadow-2xs: 0 1px 2px 0 rgb(0 0 0 / 0.25);
+  --shadow-xs: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.25);
+  --shadow-sm: 0 2px 4px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.25);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.25);
+  --shadow-md: 0 6px 10px -2px rgb(0 0 0 / 0.4), 0 3px 6px -3px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.45), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.35);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.65);
+
+  /* Sidebar responsive widths */
+  --sidebar-width: 13rem;
+  --sidebar-width-icon: 3.5rem;
+}
+
+/* Responsive sidebar widths */
+@media (min-width: 1280px) {
+  :root,
+  .dark {
+    --sidebar-width: 14.5rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  :root,
+  .dark {
+    --sidebar-width: 16rem;
+  }
 }
 
 @theme inline {

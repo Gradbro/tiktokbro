@@ -5,6 +5,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { SlideshowProvider } from '@/context/SlideshowContext';
 import { Toaster } from '@/components/ui/sonner';
 import { AppShell } from '@/components/layout/AppShell';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -22,14 +23,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <AuthProvider>
-          <SlideshowProvider>
-            <AppShell>{children}</AppShell>
-            <Toaster />
-          </SlideshowProvider>
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <AuthProvider>
+            <SlideshowProvider>
+              <AppShell>{children}</AppShell>
+              <Toaster />
+            </SlideshowProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

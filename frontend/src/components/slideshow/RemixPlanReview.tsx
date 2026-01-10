@@ -652,9 +652,9 @@ export function RemixPlanReview() {
       {currentPlan && (
         <div className="flex-1 flex overflow-hidden min-h-0 max-h-full">
           {/* Left: Image Selection */}
-          <div className="w-[280px] border-r flex flex-col min-h-0 overflow-hidden">
+          <div className="w-[280px] border-r bg-card flex flex-col min-h-0 overflow-hidden">
             {/* Search & Upload Bar */}
-            <div className="p-2 border-b flex gap-1.5">
+            <div className="p-3 border-b bg-muted/30 flex gap-2">
               <Input
                 value={currentPlan.pinterestQuery}
                 onChange={(e) => editRemixPlan(activeSlide, { pinterestQuery: e.target.value })}
@@ -695,7 +695,7 @@ export function RemixPlanReview() {
             </div>
 
             {/* Images Grid */}
-            <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex-1 overflow-y-auto p-3 bg-muted/20">
               {(() => {
                 const uploadedImages = uploadedImagesMap.get(activeSlide) || [];
                 const pinterestImages = currentPlan.pinterestCandidates || [];
@@ -723,16 +723,17 @@ export function RemixPlanReview() {
 
                 if (allImages.length > 0) {
                   return (
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <div className="grid grid-cols-3 gap-2">
                       {allImages.map((img) => (
                         <button
                           key={img.key}
                           onClick={() => handleSelectImage(activeSlide, img.url)}
                           className={cn(
-                            'relative aspect-9/16 rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.02]',
+                            'group relative aspect-9/16 rounded-xl overflow-hidden transition-all duration-200 hover:scale-[1.03]',
+                            'shadow-sm hover:shadow-md',
                             currentPlan.selectedImageUrl === img.url
-                              ? 'border-primary ring-2 ring-primary/20'
-                              : 'border-transparent hover:border-muted-foreground/30'
+                              ? 'ring-3 ring-primary ring-offset-2 ring-offset-background shadow-lg shadow-primary/20'
+                              : 'ring-1 ring-border hover:ring-2 hover:ring-primary/40'
                           )}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -742,15 +743,24 @@ export function RemixPlanReview() {
                             className="w-full h-full object-cover"
                             onError={() => handleImageError(img.url)}
                           />
+                          {/* Hover overlay */}
+                          <div
+                            className={cn(
+                              'absolute inset-0 transition-all duration-200',
+                              currentPlan.selectedImageUrl === img.url
+                                ? 'bg-primary/25'
+                                : 'bg-transparent group-hover:bg-primary/10'
+                            )}
+                          />
                           {currentPlan.selectedImageUrl === img.url && (
-                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
                                 <Check className="h-4 w-4 text-white" />
                               </div>
                             </div>
                           )}
                           {img.type === 'upload' && (
-                            <div className="absolute top-1 left-1 px-1 py-0.5 bg-blue-500 text-white text-[8px] rounded">
+                            <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-blue-500/90 text-white text-[9px] font-medium rounded-md shadow-sm">
                               Uploaded
                             </div>
                           )}
@@ -806,9 +816,11 @@ export function RemixPlanReview() {
 
             {/* Original Reference - Bottom */}
             {originalSlide?.imageUrl && (
-              <div className="p-2 border-t shrink-0">
-                <Label className="text-xs text-muted-foreground mb-1 block">Original</Label>
-                <div className="aspect-9/16 w-full max-w-[120px] rounded-lg overflow-hidden mx-auto">
+              <div className="p-3 border-t bg-muted/30 shrink-0">
+                <Label className="text-xs text-muted-foreground mb-2 block font-medium">
+                  Original Reference
+                </Label>
+                <div className="aspect-9/16 w-full max-w-[120px] rounded-xl overflow-hidden mx-auto ring-1 ring-border shadow-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={originalSlide.imageUrl}
@@ -913,7 +925,7 @@ export function RemixPlanReview() {
           </div>
 
           {/* Right: Controls */}
-          <div className="w-48 border-l bg-card p-3 flex flex-col gap-2 min-h-0 overflow-y-auto">
+          <div className="w-52 border-l bg-card p-4 flex flex-col gap-3 min-h-0 overflow-y-auto">
             {/* Add Text Button */}
             <Button onClick={handleAddText} variant="outline" size="sm" className="w-full">
               <Plus className="h-3 w-3 mr-1" />
@@ -1066,7 +1078,7 @@ export function RemixPlanReview() {
       )}
 
       {/* Footer */}
-      <div className="px-3 py-2 border-t bg-card flex items-center justify-end shrink-0">
+      <div className="px-4 py-3 border-t bg-card/80 backdrop-blur-sm flex items-center justify-end shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-sm">
             <span className="font-medium">{selectedCount}</span>

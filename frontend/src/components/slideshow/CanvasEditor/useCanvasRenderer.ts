@@ -33,7 +33,7 @@ export function useCanvasRenderer({ width, height }: UseCanvasRendererOptions) {
 
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous'; // Required for canvas export
+      img.crossOrigin = 'use-credentials'; // Required for canvas export with authenticated proxy
       img.onload = () => {
         imageCache.current.set(proxiedSrc, img);
         resolve(img);

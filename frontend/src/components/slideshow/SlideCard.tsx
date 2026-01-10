@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { GeneratedSlide } from '@/types';
 import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { useSlideshowGenerator } from '@/hooks/useSlideshowGenerator';
+import { cn } from '@/lib/utils';
 
 interface SlideCardProps {
   slide: GeneratedSlide;
@@ -20,13 +21,17 @@ export function SlideCard({ slide, onClick, isSelected }: SlideCardProps) {
 
   return (
     <Card
-      className={`cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 ${
-        isSelected ? 'ring-2 ring-primary' : ''
-      }`}
+      className={cn(
+        'cursor-pointer transition-all duration-200 hover:scale-[1.02]',
+        'shadow-sm hover:shadow-md',
+        isSelected
+          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg shadow-primary/20'
+          : 'ring-1 ring-border hover:ring-2 hover:ring-primary/40'
+      )}
       onClick={onClick}
     >
-      <CardContent className="p-2">
-        <div className={`relative ${aspectRatioClass} bg-muted rounded-md overflow-hidden`}>
+      <CardContent className="p-2.5">
+        <div className={cn('relative rounded-lg overflow-hidden bg-muted/50', aspectRatioClass)}>
           {slide.status === 'pending' && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center text-muted-foreground">

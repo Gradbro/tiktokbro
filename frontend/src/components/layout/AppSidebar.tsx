@@ -1,23 +1,24 @@
 'use client';
 
+import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Images, Video, Sparkles, Clapperboard, LogOut } from 'lucide-react';
+import { Images, Video, Sparkles, Clapperboard } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarRail,
 } from '@/components/ui/sidebar';
-import { ProductSettings } from './ProductSettings';
-import { useAuth } from '@/context/AuthContext';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { UserMenu } from './UserMenu';
+import { ProductSettingsDialog } from './ProductSettingsDialog';
 
 const items = [
   {
@@ -29,6 +30,7 @@ const items = [
     title: 'AI Avatars',
     url: '/avatar',
     icon: Video,
+    badge: 'Soon',
   },
   {
     title: 'UGC Reactions',
@@ -39,71 +41,66 @@ const items = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
 
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/" />}>
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Sparkles className="size-4" />
-              </div>
-              <span className="font-semibold">ShortsBro</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    render={<Link href={item.url} />}
-                    isActive={
-                      pathname === item.url ||
-                      pathname.startsWith(item.url + '/') ||
-                      (item.url === '/slideshows' && pathname === '/')
-                    }
-                  >
-                    <item.icon className="size-4" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter className="p-0">
-        <ProductSettings />
-        {user && (
-          <div className="flex items-center gap-3 border-t px-3 py-3">
-            <Avatar className="size-8">
-              <AvatarImage src={user.picture} alt={user.name} />
-              <AvatarFallback className="text-xs">
-                {user.name.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-medium">{user.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 shrink-0"
-              onClick={signOut}
-              title="Sign out"
-            >
-              <LogOut className="size-4" />
-            </Button>
-          </div>
-        )}
-      </SidebarFooter>
-    </Sidebar>
+    <>
+      <Sidebar collapsible="icon">
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                size="lg"
+                render={<Link href="/" />}
+                className="hover:bg-transparent active:bg-transparent"
+              >
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Sparkles className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">ShortsBro</span>
+                  <span className="truncate text-xs text-muted-foreground">Creator Studio</span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Create</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      render={<Link href={item.url} />}
+                      isActive={
+                        pathname === item.url ||
+                        pathname.startsWith(item.url + '/') ||
+                        (item.url === '/slideshows' && pathname === '/')
+                      }
+                      tooltip={item.title}
+                    >
+                      <item.icon className="size-4" />
+                      <span>{item.title}</span>
+                      {item.badge && (
+                        <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+                          {item.badge}
+                        </span>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+          <UserMenu onOpenSettings={() => setSettingsOpen(true)} />
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+      <ProductSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </>
   );
 }
