@@ -58,21 +58,26 @@ ShortsBro/
 ## User Flow
 
 1. **Prompt Stage**: User enters a prompt describing their slideshow idea
+
    - Configure: slide count (3-6), aspect ratio (9:16, 1:1, 16:9), model selection
 
 2. **Planning Stage**: Gemini generates slide plans with:
+
    - Content (main message)
    - Image prompt (for Imagen)
    - Suggested text overlay
 
 3. **Review Stage**: User can edit slide plans before generation
+
    - Modify content, image prompts, overlay text
 
 4. **Generating Stage**: Images generated sequentially via Imagen 4 API
+
    - Progress indicator shows completion status
    - Each slide shows loading/complete/error state
 
 5. **Editing Stage**: User edits slides with Fabric.js canvas
+
    - Add/remove text overlays
    - Change font, size, color
    - Drag to position text
@@ -84,11 +89,13 @@ ShortsBro/
 ## API Endpoints
 
 ### POST /api/generate-plan
+
 - **Input**: `{ prompt: string, slideCount: number }`
 - **Output**: `{ success: boolean, plans: SlidePlan[] }`
 - Uses Gemini 2.0 Flash for text generation
 
 ### POST /api/generate-image
+
 - **Input**: `{ imagePrompt: string, aspectRatio: string, model: string }`
 - **Output**: `{ success: boolean, imageData: string }` (base64)
 - Uses Imagen 4 models:
@@ -111,8 +118,8 @@ interface GeneratedSlide {
   id: string;
   slideNumber: number;
   plan: SlidePlan;
-  imageData?: string;           // Base64 from Imagen
-  editedImageData?: string;     // Canvas export with text overlay
+  imageData?: string; // Base64 from Imagen
+  editedImageData?: string; // Canvas export with text overlay
   status: 'pending' | 'generating' | 'complete' | 'error';
   error?: string;
   textOverlay?: TextOverlay;
@@ -149,17 +156,20 @@ Uses React Context with useReducer in `SlideshowContext.tsx`:
 ## Key Implementation Details
 
 ### Image Generation (backend/src/services/image.service.ts)
+
 - Uses `ai.models.generateImages()` API (not generateContent)
 - Enhances prompts with TikTok-style keywords
 - Returns base64 image bytes directly
 
 ### Slide Editor (SlideEditor.tsx)
+
 - Fabric.js canvas for text manipulation
 - Two-way sync: canvas selection updates controls, control changes update canvas
 - Saves both TextOverlay config and editedImageData (canvas snapshot)
 - Dirty state tracking for save button
 
 ### Download (DownloadPanel.tsx)
+
 - Uses `editedImageData` when available (includes text overlays)
 - Falls back to original `imageData` if no edits
 - JSZip for downloading all slides as ZIP
@@ -167,12 +177,14 @@ Uses React Context with useReducer in `SlideshowContext.tsx`:
 ## Environment Variables
 
 ### Backend (.env)
+
 ```
 GEMINI_API_KEY=your_api_key
 PORT=3001
 ```
 
 ### Frontend (.env.local)
+
 ```
 NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
@@ -194,11 +206,13 @@ Requires Node.js 20+ (use `nvm use 22`)
 ## Dependencies
 
 ### Backend
+
 - `@google/genai` - Google AI SDK
 - `express`, `cors`, `dotenv`
 - `typescript`, `tsx` (dev)
 
 ### Frontend
+
 - `next`, `react`
 - `fabric` - Canvas library
 - `jszip` - ZIP file generation

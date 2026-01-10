@@ -7,6 +7,7 @@ ShortsBro is a short-form content creation platform. Users provide prompts to ge
 ## Tech Stack
 
 ### Backend
+
 - **Runtime**: Node.js with TypeScript
 - **Framework**: Express.js for REST API
 - **AI**: Google Gemini API for content generation and analysis
@@ -14,6 +15,7 @@ ShortsBro is a short-form content creation platform. Users provide prompts to ge
 - **External APIs**: Pinterest API, TikTok integrations
 
 ### Frontend
+
 - **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
