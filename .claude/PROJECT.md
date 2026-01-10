@@ -1,18 +1,18 @@
-# TikTok Slideshow Generator
+# ShortsBro - AI Content Creation Suite
 
-A web application for generating TikTok-style image slideshows using AI. Users write a prompt, AI generates a slide plan, then generates images for each slide using Google's Imagen API.
+A web application for generating short-form content including AI slideshows and UGC reaction videos. Users write prompts to generate slide plans, create images, and generate realistic reaction videos from a single photo.
 
 ## Tech Stack
 
 - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui
 - **Backend**: Node.js + Express + TypeScript (separate server)
-- **AI**: Google Gemini API (text generation) + Imagen 4 API (image generation)
+- **AI**: Google Gemini API (text/image), Kling 2.6 (video generation), FAL.ai (storage/processing)
 - **Canvas**: Fabric.js for text overlay editing
 
 ## Project Structure
 
 ```
-TiktokBro/
+ShortsBro/
 ├── frontend/                     # Next.js 15 frontend (port 3000)
 │   ├── src/
 │   │   ├── app/

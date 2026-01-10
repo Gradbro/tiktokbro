@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/tiktokbro';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/shortsbro';
 
 export async function connectDatabase(): Promise<void> {
   try {

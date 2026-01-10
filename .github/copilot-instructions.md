@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-TiktokBro is a slideshow content creation platform. Users provide prompts to generate AI-powered slideshow presentations with customizable slides, storyboards, and remix capabilities. The platform uses AI (Gemini) to analyze content, plan slides, and generate visual layouts that can be edited in a canvas editor.
+ShortsBro is a short-form content creation platform. Users provide prompts to generate AI-powered slideshow presentations and UGC reaction videos. The platform uses AI (Gemini + Kling) to analyze content, plan slides, generate visual layouts, and create realistic reaction videos from a single photo.
 
 ## Tech Stack
 
