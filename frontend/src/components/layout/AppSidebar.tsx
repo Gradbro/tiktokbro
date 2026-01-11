@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Images, Video, Sparkles, Clapperboard } from 'lucide-react';
+import { Images, Video, Sparkles, Clapperboard, LayoutTemplate } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -25,6 +25,11 @@ const items = [
     title: 'Slideshows',
     url: '/slideshows',
     icon: Images,
+  },
+  {
+    title: 'Templates',
+    url: '/templates',
+    icon: LayoutTemplate,
   },
   {
     title: 'AI Avatars',

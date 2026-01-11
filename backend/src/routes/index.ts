@@ -8,6 +8,10 @@ import settingsRoutes from './settings.routes';
 import reactionRoutes from './reaction.routes';
 import ugcReactionRoutes from './ugc-reaction.routes';
 import authRoutes from './auth.routes';
+import imageLibraryRoutes from './image-library.routes';
+import collectionRoutes from './collection.routes';
+import productRoutes from './product.routes';
+import templateRoutes from './template.routes';
 
 const router = Router();
 
@@ -20,6 +24,10 @@ router.use('/slideshows', slideshowRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/reactions', reactionRoutes);
 router.use('/ugc-reactions', ugcReactionRoutes);
+router.use('/image-library', imageLibraryRoutes);
+router.use('/collections', collectionRoutes);
+router.use('/products', productRoutes);
+router.use('/templates', templateRoutes);
 
 // Health check
 router.get('/health', (_, res) => {

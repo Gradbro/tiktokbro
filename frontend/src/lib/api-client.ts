@@ -19,6 +19,16 @@ import {
   SlideshowSaveResponse,
   SlideshowDeleteResponse,
   SlideshowSearchResponse,
+  TemplateListResponse,
+  TemplateGetResponse,
+  TemplateSaveResponse,
+  TemplateDeleteResponse,
+  Template,
+  TemplateSlide,
+  CollectionListResponse,
+  CollectionGetResponse,
+  ProductListResponse,
+  ProductGetResponse,
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -431,4 +441,226 @@ export async function getGallerySessions(
   limit: number = 20
 ): Promise<GalleryListResponse> {
   return fetchApi<GalleryListResponse>(`/ugc-reactions/gallery?page=${page}&limit=${limit}`);
+}
+
+// ==================== Template API ====================
+
+/**
+ * List all templates with pagination
+ */
+export async function listTemplates(
+  page: number = 1,
+  limit: number = 20
+): Promise<TemplateListResponse> {
+  return fetchApi<TemplateListResponse>(`/templates?page=${page}&limit=${limit}`);
+}
+
+/**
+ * Get a template by ID
+ */
+export async function getTemplate(id: string): Promise<TemplateGetResponse> {
+  return fetchApi<TemplateGetResponse>(`/templates/${id}`);
+}
+
+/**
+ * Create a template from TikTok URL
+ */
+export async function createTemplateFromTikTok(
+  tiktokUrl: string,
+  fetchPinterestImages: boolean = true
+): Promise<TemplateSaveResponse> {
+  return fetchApi<TemplateSaveResponse>('/templates/from-tiktok', {
+    method: 'POST',
+    body: JSON.stringify({ tiktokUrl, fetchPinterestImages }),
+  });
+}
+
+/**
+ * Create a template from prompt
+ */
+export async function createTemplateFromPrompt(
+  prompt: string,
+  slideCount: number = 5,
+  fetchPinterestImages: boolean = true
+): Promise<TemplateSaveResponse> {
+  return fetchApi<TemplateSaveResponse>('/templates/from-prompt', {
+    method: 'POST',
+    body: JSON.stringify({ prompt, slideCount, fetchPinterestImages }),
+  });
+}
+
+/**
+ * Create a blank template from scratch
+ */
+export async function createTemplateFromScratch(
+  name: string,
+  slideCount: number = 5
+): Promise<TemplateSaveResponse> {
+  return fetchApi<TemplateSaveResponse>('/templates/from-scratch', {
+    method: 'POST',
+    body: JSON.stringify({ name, slideCount }),
+  });
+}
+
+/**
+ * Update a template
+ */
+export async function updateTemplate(
+  id: string,
+  data: Partial<Template>
+): Promise<TemplateSaveResponse> {
+  return fetchApi<TemplateSaveResponse>(`/templates/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Update a slide in a template
+ */
+export async function updateTemplateSlide(
+  templateId: string,
+  slideId: string,
+  slideData: Partial<TemplateSlide>
+): Promise<TemplateSaveResponse> {
+  return fetchApi<TemplateSaveResponse>(`/templates/${templateId}/slides/${slideId}`, {
+    method: 'PUT',
+    body: JSON.stringify(slideData),
+  });
+}
+
+/**
+ * Add a slide to a template
+ */
+export async function addTemplateSlide(
+  templateId: string,
+  slideData?: Partial<TemplateSlide>
+): Promise<TemplateSaveResponse> {
+  return fetchApi<TemplateSaveResponse>(`/templates/${templateId}/slides`, {
+    method: 'POST',
+    body: JSON.stringify(slideData || {}),
+  });
+}
+
+/**
+ * Remove a slide from a template
+ */
+export async function removeTemplateSlide(
+  templateId: string,
+  slideId: string
+): Promise<TemplateSaveResponse> {
+  return fetchApi<TemplateSaveResponse>(`/templates/${templateId}/slides/${slideId}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Reorder slides in a template
+ */
+export async function reorderTemplateSlides(
+  templateId: string,
+  slideIds: string[]
+): Promise<TemplateSaveResponse> {
+  return fetchApi<TemplateSaveResponse>(`/templates/${templateId}/slides/reorder`, {
+    method: 'PUT',
+    body: JSON.stringify({ slideIds }),
+  });
+}
+
+/**
+ * Delete a template
+ */
+export async function deleteTemplate(id: string): Promise<TemplateDeleteResponse> {
+  return fetchApi<TemplateDeleteResponse>(`/templates/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// ==================== Collection API ====================
+
+/**
+ * List all collections with pagination
+ */
+export async function listCollections(
+  page: number = 1,
+  limit: number = 20
+): Promise<CollectionListResponse> {
+  return fetchApi<CollectionListResponse>(`/collections?page=${page}&limit=${limit}`);
+}
+
+/**
+ * Get a collection with its images
+ */
+export async function getCollection(id: string): Promise<CollectionGetResponse> {
+  return fetchApi<CollectionGetResponse>(`/collections/${id}`);
+}
+
+/**
+ * Get a random image from a collection
+ */
+export async function getRandomCollectionImage(
+  collectionId: string
+): Promise<{
+  success: boolean;
+  data?: { id: string; url: string; source: string };
+  error?: string;
+}> {
+  return fetchApi(`/collections/${collectionId}/random`);
+}
+
+// ==================== Product API ====================
+
+/**
+ * List all products with pagination
+ */
+export async function listProducts(
+  page: number = 1,
+  limit: number = 20
+): Promise<ProductListResponse> {
+  return fetchApi<ProductListResponse>(`/products?page=${page}&limit=${limit}`);
+}
+
+/**
+ * Get a product by ID
+ */
+export async function getProduct(id: string): Promise<ProductGetResponse> {
+  return fetchApi<ProductGetResponse>(`/products/${id}`);
+}
+
+/**
+ * Create a product
+ */
+export async function createProduct(
+  name: string,
+  description: string,
+  url?: string
+): Promise<ProductGetResponse> {
+  return fetchApi<ProductGetResponse>('/products', {
+    method: 'POST',
+    body: JSON.stringify({ name, description, url }),
+  });
+}
+
+/**
+ * Update a product
+ */
+export async function updateProduct(
+  id: string,
+  data: { name?: string; description?: string; url?: string }
+): Promise<ProductGetResponse> {
+  return fetchApi<ProductGetResponse>(`/products/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Delete a product
+ */
+export async function deleteProduct(
+  id: string
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  return fetchApi(`/products/${id}`, {
+    method: 'DELETE',
+  });
 }

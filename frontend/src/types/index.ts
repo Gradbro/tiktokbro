@@ -335,3 +335,146 @@ export interface UGCReactionListResponse {
   pages?: number;
   error?: string;
 }
+
+// ==================== Template System Types ====================
+
+export interface TemplateTextBox {
+  id: string;
+  defaultText: string;
+  variableName: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  fontFamily: string;
+  color: string;
+  backgroundColor: string | null;
+  textAlign: 'left' | 'center' | 'right';
+}
+
+export interface TemplateSlide {
+  id: string;
+  position: number;
+  width: number;
+  height: number;
+  backgroundCollectionId?: string;
+  backgroundImageUrl?: string;
+  textBoxes: TemplateTextBox[];
+}
+
+export interface TemplateSource {
+  type: 'tiktok' | 'scratch' | 'prompt';
+  url?: string;
+  authorName?: string;
+}
+
+export interface Template {
+  id: string;
+  userId: string;
+  name: string;
+  source?: TemplateSource;
+  slides: TemplateSlide[];
+  thumbnailUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TemplateListItem {
+  id: string;
+  name: string;
+  source?: {
+    type: string;
+    authorName?: string;
+  };
+  slideCount: number;
+  thumbnailUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Template API Types
+export interface TemplateListResponse {
+  success: boolean;
+  templates: TemplateListItem[];
+  total: number;
+  pages: number;
+}
+
+export interface TemplateGetResponse {
+  success: boolean;
+  data?: Template;
+  error?: string;
+}
+
+export interface TemplateSaveResponse {
+  success: boolean;
+  data?: Template;
+  error?: string;
+}
+
+export interface TemplateDeleteResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+// Collection Types
+export interface Collection {
+  id: string;
+  name: string;
+  description?: string;
+  imageCount: number;
+  thumbnailUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CollectionWithImages {
+  id: string;
+  name: string;
+  description?: string;
+  images: Array<{
+    id: string;
+    url: string;
+    source: string;
+    pinterestPinUrl?: string;
+  }>;
+  thumbnailUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CollectionListResponse {
+  success: boolean;
+  collections: Collection[];
+  total: number;
+  pages: number;
+}
+
+export interface CollectionGetResponse {
+  success: boolean;
+  data?: CollectionWithImages;
+  error?: string;
+}
+
+// Product Types
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  url?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductListResponse {
+  success: boolean;
+  products: Product[];
+  total: number;
+  pages: number;
+}
+
+export interface ProductGetResponse {
+  success: boolean;
+  data?: Product;
+  error?: string;
+}

@@ -126,6 +126,8 @@ const ImageConfigSchema = new Schema(
 export interface ISlideshowSession extends Document {
   sessionId: string;
   userId?: string;
+  templateId?: string;
+  productId?: string;
   name: string;
   prompt: string;
   stage: string;
@@ -203,6 +205,8 @@ const SlideshowSessionSchema = new Schema<ISlideshowSession>(
   {
     sessionId: { type: String, required: true, unique: true, index: true },
     userId: { type: String, index: true },
+    templateId: { type: String, index: true },
+    productId: { type: String, index: true },
     name: { type: String, default: 'Untitled Slideshow' },
     prompt: { type: String, default: '' },
     stage: {
