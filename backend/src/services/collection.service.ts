@@ -1,5 +1,5 @@
 import { Collection, ICollection } from '../models/collection.model';
-import { Image, IImage } from '../models/image.model';
+import { Image } from '../models/image.model';
 import { Types } from 'mongoose';
 
 export interface CreateCollectionData {

@@ -124,7 +124,7 @@ function SidebarProvider({
         data-slot="sidebar-wrapper"
         style={style}
         className={cn(
-          'group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full',
+          'group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex h-full w-full overflow-hidden',
           className
         )}
         {...props}
@@ -288,7 +288,10 @@ function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
   return (
     <main
       data-slot="sidebar-inset"
-      className={cn('bg-background relative flex w-full flex-1 flex-col', className)}
+      className={cn(
+        'bg-background relative flex w-full flex-1 flex-col h-full overflow-hidden',
+        className
+      )}
       {...props}
     />
   );

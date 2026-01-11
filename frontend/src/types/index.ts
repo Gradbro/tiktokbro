@@ -356,6 +356,7 @@ export interface TemplateSlide {
   position: number;
   width: number;
   height: number;
+  backgroundColor?: string;
   backgroundCollectionId?: string;
   backgroundImageUrl?: string;
   textBoxes: TemplateTextBox[];

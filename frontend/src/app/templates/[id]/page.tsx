@@ -1,44 +1,71 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { HugeiconsIcon } from '@hugeicons/react';
 import {
-  ArrowLeft,
-  Plus,
-  Trash2,
-  GripVertical,
-  Save,
-  Loader2,
-  Image as ImageIcon,
-  Type,
-  Settings,
-} from 'lucide-react';
+  Add01Icon,
+  Delete02Icon,
+  Tick02Icon,
+  Loading02Icon,
+  TextIcon,
+  CloudIcon,
+} from '@hugeicons/core-free-icons';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { PageTitle } from '@/components/layout/PageTitle';
+import { usePageContext } from '@/context/PageContext';
 import {
   getTemplate,
   updateTemplate,
   addTemplateSlide,
   removeTemplateSlide,
-  updateTemplateSlide,
 } from '@/lib/api-client';
-import { Template, TemplateSlide, TemplateTextBox } from '@/types';
+import { Template, TemplateTextBox } from '@/types';
+
+// Fabric.js editor components
+import { FabricCanvas, type FabricCanvasRef } from '@/components/editor/FabricCanvas';
+import { PropertiesPanel } from '@/components/editor/PropertiesPanel';
+import type {
+  SelectedObjectInfo,
+  TextObjectProps,
+  ImageObjectProps,
+  SceneProps,
+} from '@/components/editor/FabricCanvas/types';
+import { DEFAULT_BACKGROUND_COLOR } from '@/components/editor/FabricCanvas/constants';
+import { cn } from '@/lib/utils';
+
+type SaveStatus = 'saved' | 'saving' | 'unsaved';
 
 export default function TemplateEditorPage() {
   const params = useParams();
   const router = useRouter();
   const templateId = params.id as string;
+  const { setBreadcrumbs, setToolbarContent, setRightActions } = usePageContext();
+
+  const canvasRef = useRef<FabricCanvasRef>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   const [template, setTemplate] = useState<Template | null>(null);
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
-  const [selectedTextBoxId, setSelectedTextBoxId] = useState<string | null>(null);
+
+  // Selection state from Fabric canvas
+  const [selection, setSelection] = useState<SelectedObjectInfo>({
+    type: 'none',
+    object: null,
+    id: null,
+  });
+  const [textProps, setTextProps] = useState<TextObjectProps | null>(null);
+  const [imageProps, setImageProps] = useState<ImageObjectProps | null>(null);
+
+  // Scene props computed from current slide
+  const currentSlide = template?.slides[selectedSlideIndex];
+  const sceneProps: SceneProps = {
+    width: currentSlide?.width || 1080,
+    height: currentSlide?.height || 1920,
+    backgroundColor: currentSlide?.backgroundColor || DEFAULT_BACKGROUND_COLOR,
+  };
 
   const loadTemplate = useCallback(async () => {
     setIsLoading(true);
@@ -68,26 +95,128 @@ export default function TemplateEditorPage() {
     loadTemplate();
   }, [loadTemplate]);
 
-  const handleSave = async () => {
+  // Set breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: 'Templates', href: '/templates' },
+      { label: template?.name || 'Loading...' },
+    ]);
+
+    return () => {
+      setBreadcrumbs([]);
+    };
+  }, [template?.name, setBreadcrumbs]);
+
+  // Clear toolbar content - we'll use our own secondary bar
+  useEffect(() => {
+    setToolbarContent(null);
+    return () => setToolbarContent(null);
+  }, [setToolbarContent]);
+
+  // Auto-save function
+  const performSave = useCallback(async () => {
     if (!template) return;
 
-    setIsSaving(true);
+    // Get current canvas state
+    const slideData = canvasRef.current?.getSlideData();
+    const slidesToSave = slideData
+      ? template.slides.map((s, i) =>
+          i === selectedSlideIndex ? { ...s, textBoxes: slideData.textBoxes } : s
+        )
+      : template.slides;
+
+    setSaveStatus('saving');
     try {
       const result = await updateTemplate(template.id, {
         name: template.name,
-        slides: template.slides,
+        slides: slidesToSave,
       });
 
       if (result.success) {
-        toast.success('Template saved');
+        setSaveStatus('saved');
       } else {
+        setSaveStatus('unsaved');
         toast.error(result.error || 'Failed to save');
       }
     } catch {
+      setSaveStatus('unsaved');
       toast.error('Failed to save template');
-    } finally {
-      setIsSaving(false);
     }
+  }, [template, selectedSlideIndex]);
+
+  // Trigger auto-save with debounce
+  const triggerAutoSave = useCallback(() => {
+    setSaveStatus('unsaved');
+
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Set new timeout for auto-save (1.5 seconds after last change)
+    saveTimeoutRef.current = setTimeout(() => {
+      performSave();
+    }, 1500);
+  }, [performSave]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Set right actions (Add Text, Save Status)
+  useEffect(() => {
+    const content = (
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={handleAddText}>
+          <HugeiconsIcon icon={TextIcon} className="size-4 mr-2" strokeWidth={2} />
+          Add Text
+        </Button>
+        {/* Save Status Indicator */}
+        <div className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground">
+          {saveStatus === 'saving' && (
+            <>
+              <HugeiconsIcon
+                icon={Loading02Icon}
+                className="size-3.5 animate-spin"
+                strokeWidth={2}
+              />
+              <span>Saving...</span>
+            </>
+          )}
+          {saveStatus === 'saved' && (
+            <>
+              <HugeiconsIcon icon={CloudIcon} className="size-3.5 text-green-500" strokeWidth={2} />
+              <span className="text-green-500">Saved</span>
+            </>
+          )}
+          {saveStatus === 'unsaved' && (
+            <>
+              <div className="size-2 rounded-full bg-orange-400" />
+              <span>Unsaved</span>
+            </>
+          )}
+        </div>
+      </div>
+    );
+
+    setRightActions(content);
+
+    return () => {
+      setRightActions(null);
+    };
+  }, [saveStatus, setRightActions]);
+
+  // Legacy manual save (keeping for keyboard shortcut if needed)
+  const handleSave = async () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    await performSave();
   };
 
   const handleAddSlide = async () => {
@@ -98,7 +227,6 @@ export default function TemplateEditorPage() {
       if (result.success && result.data) {
         setTemplate(result.data);
         setSelectedSlideIndex(result.data.slides.length - 1);
-        toast.success('Slide added');
       }
     } catch {
       toast.error('Failed to add slide');
@@ -107,8 +235,7 @@ export default function TemplateEditorPage() {
 
   const handleRemoveSlide = async (slideId: string) => {
     if (!template || template.slides.length <= 1) {
-      toast.error('Cannot remove the last slide');
-      return;
+      return; // Silently prevent removing last slide
     }
 
     try {
@@ -116,52 +243,215 @@ export default function TemplateEditorPage() {
       if (result.success && result.data) {
         setTemplate(result.data);
         setSelectedSlideIndex(Math.min(selectedSlideIndex, result.data.slides.length - 1));
-        toast.success('Slide removed');
       }
     } catch {
       toast.error('Failed to remove slide');
     }
   };
 
-  const handleUpdateSlide = async (slideId: string, data: Partial<TemplateSlide>) => {
+  const handleCanvasChange = (slideData: { id: string; textBoxes: TemplateTextBox[] }) => {
     if (!template) return;
 
-    // Optimistic update
+    // Update template state with new canvas data
     setTemplate((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
-        slides: prev.slides.map((s) => (s.id === slideId ? { ...s, ...data } : s)),
+        slides: prev.slides.map((s, i) =>
+          i === selectedSlideIndex ? { ...s, textBoxes: slideData.textBoxes } : s
+        ),
       };
     });
+
+    // Trigger auto-save
+    triggerAutoSave();
   };
 
-  const handleUpdateTextBox = (
-    slideId: string,
-    textBoxId: string,
-    data: Partial<TemplateTextBox>
-  ) => {
-    if (!template) return;
+  /**
+   * Handle text property changes from the properties panel
+   */
+  const handleTextChange = (props: Partial<TextObjectProps>) => {
+    if (!textProps?.id || !template) return;
 
+    const currentSlide = template.slides[selectedSlideIndex];
+    if (!currentSlide) return;
+
+    // IMPORTANT: Update the canvas immediately for visual feedback
+    canvasRef.current?.updateSelectedText(props);
+
+    // Also update the template state for persistence
     setTemplate((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
-        slides: prev.slides.map((s) => {
-          if (s.id !== slideId) return s;
+        slides: prev.slides.map((s, i) => {
+          if (i !== selectedSlideIndex) return s;
           return {
             ...s,
-            textBoxes: s.textBoxes.map((tb) => (tb.id === textBoxId ? { ...tb, ...data } : tb)),
+            textBoxes: s.textBoxes.map((tb) => {
+              if (tb.id !== textProps.id) return tb;
+              return {
+                ...tb,
+                ...(props.text !== undefined && { defaultText: props.text }),
+                ...(props.left !== undefined && { x: props.left }),
+                ...(props.top !== undefined && { y: props.top }),
+                ...(props.fontSize !== undefined && { fontSize: props.fontSize }),
+                ...(props.fontFamily !== undefined && { fontFamily: props.fontFamily }),
+                ...(props.fill !== undefined && { color: props.fill }),
+                ...(props.customBackgroundColor !== undefined && {
+                  backgroundColor: props.customBackgroundColor,
+                }),
+                ...(props.textAlign !== undefined && { textAlign: props.textAlign }),
+                ...(props.variableName !== undefined && { variableName: props.variableName }),
+              };
+            }),
           };
         }),
       };
     });
+
+    // Trigger auto-save
+    triggerAutoSave();
+  };
+
+  /**
+   * Handle image property changes
+   */
+  const handleImageChange = (props: Partial<ImageObjectProps>) => {
+    // Image changes are handled directly on the canvas
+    console.log('Image change:', props);
+  };
+
+  /**
+   * Handle scene property changes (dimensions and background color)
+   */
+  const handleSceneChange = (props: Partial<SceneProps>) => {
+    if (!template) return;
+
+    // Update slide dimensions and background color
+    setTemplate((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        slides: prev.slides.map((s, i) => {
+          if (i !== selectedSlideIndex) return s;
+          return {
+            ...s,
+            ...(props.width !== undefined && { width: props.width }),
+            ...(props.height !== undefined && { height: props.height }),
+            ...(props.backgroundColor !== undefined && { backgroundColor: props.backgroundColor }),
+          };
+        }),
+      };
+    });
+
+    // Trigger auto-save
+    triggerAutoSave();
+  };
+
+  /**
+   * Remove background image from current slide
+   */
+  const handleRemoveBackgroundImage = () => {
+    if (!template) return;
+
+    // Remove from canvas
+    canvasRef.current?.removeBackgroundImage();
+
+    // Update template state to remove backgroundImageUrl
+    setTemplate((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        slides: prev.slides.map((s, i) => {
+          if (i !== selectedSlideIndex) return s;
+          return {
+            ...s,
+            backgroundImageUrl: undefined,
+            backgroundCollectionId: undefined,
+          };
+        }),
+      };
+    });
+
+    // Trigger auto-save
+    triggerAutoSave();
+  };
+
+  /**
+   * Handle background image selection from collection
+   */
+  const handleBackgroundImageSelect = async (url: string, collectionId: string) => {
+    if (!template) return;
+
+    // Update canvas
+    await canvasRef.current?.setBackgroundImage(url, collectionId);
+
+    // Update template state
+    setTemplate((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        slides: prev.slides.map((s, i) => {
+          if (i !== selectedSlideIndex) return s;
+          return {
+            ...s,
+            backgroundImageUrl: url,
+            backgroundCollectionId: collectionId,
+          };
+        }),
+      };
+    });
+
+    // Trigger auto-save
+    triggerAutoSave();
+  };
+
+  /**
+   * Add a new text box to the current slide
+   */
+  const handleAddText = () => {
+    if (!template) return;
+
+    const newTextBox: TemplateTextBox = {
+      id: `text-${Date.now()}`,
+      defaultText: 'New Text',
+      variableName: '',
+      x: 50,
+      y: 50,
+      fontSize: 48,
+      fontFamily: 'Inter',
+      color: '#FFFFFF',
+      backgroundColor: null,
+      textAlign: 'center',
+    };
+
+    setTemplate((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        slides: prev.slides.map((s, i) => {
+          if (i !== selectedSlideIndex) return s;
+          return {
+            ...s,
+            textBoxes: [...s.textBoxes, newTextBox],
+          };
+        }),
+      };
+    });
+
+    // Also add to canvas
+    canvasRef.current?.addText('New Text');
   };
 
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <HugeiconsIcon
+          icon={Loading02Icon}
+          className="size-6 animate-spin text-muted-foreground"
+          strokeWidth={2}
+        />
       </div>
     );
   }
@@ -170,407 +460,113 @@ export default function TemplateEditorPage() {
     return null;
   }
 
-  const currentSlide = template.slides[selectedSlideIndex];
-  const selectedTextBox = selectedTextBoxId
-    ? currentSlide?.textBoxes.find((tb) => tb.id === selectedTextBoxId)
+  // Prepare slide data for canvas (includes backgroundColor now)
+  const slideForCanvas = currentSlide
+    ? {
+        id: currentSlide.id,
+        backgroundImageUrl: currentSlide.backgroundImageUrl,
+        backgroundColor: currentSlide.backgroundColor || DEFAULT_BACKGROUND_COLOR,
+        textBoxes: currentSlide.textBoxes,
+        width: currentSlide.width || 1080,
+        height: currentSlide.height || 1920,
+      }
     : null;
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      <PageTitle title={template.name} />
-
-      {/* Top Bar */}
-      <div className="h-12 border-b flex items-center justify-between px-4 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/templates')}>
-            <ArrowLeft className="size-4 mr-1" />
-            Templates
-          </Button>
-          <Separator orientation="vertical" className="h-5" />
-          <Input
-            value={template.name}
-            onChange={(e) =>
-              setTemplate((prev) => (prev ? { ...prev, name: e.target.value } : prev))
-            }
-            className="h-8 w-48 text-sm font-medium border-transparent hover:border-input focus:border-input"
-          />
-        </div>
-        <Button onClick={handleSave} disabled={isSaving} size="sm">
-          {isSaving ? (
-            <>
-              <Loader2 className="size-3.5 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="size-3.5 mr-2" />
-              Save Template
-            </>
-          )}
-        </Button>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex min-h-0">
-        {/* Left Panel - Slides */}
-        <div className="w-48 border-r flex flex-col">
-          <div className="p-3 border-b flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Slides</span>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleAddSlide}>
-              <Plus className="size-3.5" />
-            </Button>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
-              {template.slides.map((slide, index) => (
-                <div
-                  key={slide.id}
-                  className={`group relative rounded-lg border p-1.5 cursor-pointer transition-colors ${
-                    index === selectedSlideIndex
-                      ? 'border-primary bg-primary/5'
-                      : 'hover:bg-accent/50'
-                  }`}
-                  onClick={() => {
-                    setSelectedSlideIndex(index);
-                    setSelectedTextBoxId(null);
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <GripVertical className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-grab" />
-                    <div className="flex-1 min-w-0">
-                      <div className="aspect-[9/16] rounded bg-muted overflow-hidden">
-                        {slide.backgroundImageUrl ? (
-                          <img
-                            src={slide.backgroundImageUrl}
-                            alt=""
-                            className="size-full object-cover"
-                          />
-                        ) : (
-                          <div className="size-full flex items-center justify-center">
-                            <ImageIcon className="size-4 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-muted-foreground">{index + 1}</span>
-                    {template.slides.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="size-5 p-0 opacity-0 group-hover:opacity-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveSlide(slide.id);
-                        }}
-                      >
-                        <Trash2 className="size-3 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
-
-        {/* Center - Canvas Placeholder */}
-        <div className="flex-1 flex items-center justify-center bg-muted/30 p-8">
-          <div
-            className="relative bg-background border rounded-lg shadow-lg overflow-hidden"
-            style={{ width: 405, height: 720 }}
-          >
-            {/* Background Image */}
-            {currentSlide?.backgroundImageUrl ? (
-              <img
-                src={currentSlide.backgroundImageUrl}
-                alt=""
-                className="absolute inset-0 size-full object-cover"
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                <div className="text-center text-muted-foreground">
-                  <ImageIcon className="size-8 mx-auto mb-2" />
-                  <p className="text-xs">No background image</p>
-                </div>
-              </div>
-            )}
-
-            {/* Text Boxes Preview */}
-            {currentSlide?.textBoxes.map((textBox) => (
-              <div
-                key={textBox.id}
-                className={`absolute cursor-pointer transition-all ${
-                  selectedTextBoxId === textBox.id ? 'ring-2 ring-primary' : ''
-                }`}
-                style={{
-                  left: `${textBox.x}%`,
-                  top: `${textBox.y}%`,
-                  transform: 'translate(-50%, -50%)',
-                  fontSize: textBox.fontSize * 0.375, // Scale for 405px preview
-                  fontFamily: textBox.fontFamily,
-                  color: textBox.color,
-                  backgroundColor: textBox.backgroundColor || 'transparent',
-                  padding: textBox.backgroundColor ? '4px 8px' : 0,
-                  borderRadius: textBox.backgroundColor ? '4px' : 0,
-                  textAlign: textBox.textAlign,
-                  maxWidth: '90%',
-                }}
-                onClick={() => setSelectedTextBoxId(textBox.id)}
-              >
-                {textBox.defaultText}
-              </div>
-            ))}
-
-            {/* Canvas Placeholder Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
-              <div className="text-center text-white">
-                <Settings className="size-6 mx-auto mb-2" />
-                <p className="text-xs">Fabric.js Editor</p>
-                <p className="text-[10px] text-white/70">Coming in Phase 2</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Panel - Properties */}
-        <div className="w-64 border-l flex flex-col">
-          <div className="p-3 border-b">
-            <span className="text-xs font-medium text-muted-foreground">Properties</span>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-3 space-y-4">
-              {selectedTextBox ? (
-                <>
-                  {/* Text Box Properties */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                      <Type className="size-3.5" />
-                      Text Box
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">Text</Label>
-                      <Input
-                        value={selectedTextBox.defaultText}
-                        onChange={(e) =>
-                          handleUpdateTextBox(currentSlide.id, selectedTextBox.id, {
-                            defaultText: e.target.value,
-                          })
-                        }
-                        className="h-8 text-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">Variable Name</Label>
-                      <Input
-                        value={selectedTextBox.variableName}
-                        onChange={(e) =>
-                          handleUpdateTextBox(currentSlide.id, selectedTextBox.id, {
-                            variableName: e.target.value,
-                          })
-                        }
-                        className="h-8 text-sm font-mono"
-                        placeholder="headline"
-                      />
-                      <p className="text-[10px] text-muted-foreground">
-                        AI will substitute this when generating slideshows
-                      </p>
-                    </div>
-
-                    <Separator />
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs">X Position</Label>
-                        <Input
-                          type="number"
-                          value={selectedTextBox.x}
-                          onChange={(e) =>
-                            handleUpdateTextBox(currentSlide.id, selectedTextBox.id, {
-                              x: parseFloat(e.target.value) || 0,
-                            })
-                          }
-                          className="h-8 text-sm"
-                          min={0}
-                          max={100}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Y Position</Label>
-                        <Input
-                          type="number"
-                          value={selectedTextBox.y}
-                          onChange={(e) =>
-                            handleUpdateTextBox(currentSlide.id, selectedTextBox.id, {
-                              y: parseFloat(e.target.value) || 0,
-                            })
-                          }
-                          className="h-8 text-sm"
-                          min={0}
-                          max={100}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">Font Size</Label>
-                      <Input
-                        type="number"
-                        value={selectedTextBox.fontSize}
-                        onChange={(e) =>
-                          handleUpdateTextBox(currentSlide.id, selectedTextBox.id, {
-                            fontSize: parseInt(e.target.value) || 24,
-                          })
-                        }
-                        className="h-8 text-sm"
-                        min={8}
-                        max={200}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Text Color</Label>
-                        <div className="flex gap-1">
-                          <Input
-                            type="color"
-                            value={selectedTextBox.color}
-                            onChange={(e) =>
-                              handleUpdateTextBox(currentSlide.id, selectedTextBox.id, {
-                                color: e.target.value,
-                              })
-                            }
-                            className="h-8 w-10 p-1"
-                          />
-                          <Input
-                            value={selectedTextBox.color}
-                            onChange={(e) =>
-                              handleUpdateTextBox(currentSlide.id, selectedTextBox.id, {
-                                color: e.target.value,
-                              })
-                            }
-                            className="h-8 text-xs flex-1"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Background</Label>
-                        <div className="flex gap-1">
-                          <Input
-                            type="color"
-                            value={selectedTextBox.backgroundColor || '#000000'}
-                            onChange={(e) =>
-                              handleUpdateTextBox(currentSlide.id, selectedTextBox.id, {
-                                backgroundColor: e.target.value,
-                              })
-                            }
-                            className="h-8 w-10 p-1"
-                          />
-                          <Button
-                            variant={selectedTextBox.backgroundColor ? 'outline' : 'secondary'}
-                            size="sm"
-                            className="h-8 text-xs flex-1"
-                            onClick={() =>
-                              handleUpdateTextBox(currentSlide.id, selectedTextBox.id, {
-                                backgroundColor: selectedTextBox.backgroundColor ? null : '#000000',
-                              })
-                            }
-                          >
-                            {selectedTextBox.backgroundColor ? 'Clear' : 'None'}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">Text Align</Label>
-                      <div className="flex gap-1">
-                        {(['left', 'center', 'right'] as const).map((align) => (
-                          <Button
-                            key={align}
-                            variant={selectedTextBox.textAlign === align ? 'default' : 'outline'}
-                            size="sm"
-                            className="flex-1 h-8 text-xs capitalize"
-                            onClick={() =>
-                              handleUpdateTextBox(currentSlide.id, selectedTextBox.id, {
-                                textAlign: align,
-                              })
-                            }
-                          >
-                            {align}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : currentSlide ? (
-                <>
-                  {/* Slide Properties */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                      <ImageIcon className="size-3.5" />
-                      Slide {selectedSlideIndex + 1}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">Background Image</Label>
-                      {currentSlide.backgroundImageUrl ? (
-                        <div className="relative aspect-video rounded overflow-hidden bg-muted">
-                          <img
-                            src={currentSlide.backgroundImageUrl}
-                            alt=""
-                            className="size-full object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="aspect-video rounded bg-muted flex items-center justify-center">
-                          <p className="text-xs text-muted-foreground">No image</p>
-                        </div>
-                      )}
-                      <p className="text-[10px] text-muted-foreground">
-                        {currentSlide.backgroundCollectionId
-                          ? 'Linked to collection'
-                          : 'No collection linked'}
-                      </p>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">
-                        Text Boxes ({currentSlide.textBoxes.length})
-                      </Label>
-                      <div className="space-y-1">
-                        {currentSlide.textBoxes.map((tb) => (
-                          <button
-                            key={tb.id}
-                            onClick={() => setSelectedTextBoxId(tb.id)}
-                            className={`w-full text-left p-2 rounded text-xs transition-colors ${
-                              selectedTextBoxId === tb.id
-                                ? 'bg-primary/10 text-primary'
-                                : 'hover:bg-accent'
-                            }`}
-                          >
-                            <div className="font-medium truncate">{tb.defaultText}</div>
-                            <div className="text-muted-foreground text-[10px]">
-                              {tb.variableName}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </>
+    <div className="h-full flex overflow-hidden">
+      {/* Left Sidebar - Slide Thumbnails */}
+      <div className="w-20 h-full border-r bg-background flex flex-col flex-shrink-0">
+        <div className="flex-1 overflow-y-auto py-3 px-2 space-y-2 min-h-0">
+          {template.slides.map((slide, index) => (
+            <button
+              key={slide.id}
+              onClick={() => setSelectedSlideIndex(index)}
+              className={cn(
+                'group relative w-full aspect-[9/16] rounded-lg overflow-hidden transition-all flex-shrink-0',
+                index === selectedSlideIndex
+                  ? 'ring-2 ring-primary'
+                  : 'ring-1 ring-border/40 opacity-60 hover:opacity-100'
+              )}
+            >
+              {slide.backgroundImageUrl ? (
+                <img
+                  src={slide.backgroundImageUrl}
+                  alt={`Slide ${index + 1}`}
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                />
               ) : (
-                <div className="text-center text-muted-foreground py-8">
-                  <p className="text-xs">Select a slide or text box</p>
+                <div className="w-full h-full bg-muted" />
+              )}
+              {/* Delete button - top right corner */}
+              {template.slides.length > 1 && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveSlide(slide.id);
+                  }}
+                  className="absolute top-1 right-1 size-5 rounded bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer hover:bg-destructive"
+                >
+                  <HugeiconsIcon
+                    icon={Delete02Icon}
+                    className="size-3 text-white"
+                    strokeWidth={2}
+                  />
                 </div>
               )}
-            </div>
-          </ScrollArea>
+            </button>
+          ))}
         </div>
+
+        {/* Add Slide Button */}
+        <div className="p-2 border-t flex-shrink-0">
+          <button
+            onClick={handleAddSlide}
+            className="w-full aspect-[9/16] rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 flex items-center justify-center transition-all"
+          >
+            <HugeiconsIcon
+              icon={Add01Icon}
+              className="size-4 text-muted-foreground"
+              strokeWidth={2}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Center: Canvas Area */}
+      <div className="flex-1 h-full flex items-center justify-center bg-muted/10 min-w-0 overflow-hidden">
+        {slideForCanvas && (
+          <FabricCanvas
+            ref={canvasRef}
+            slide={slideForCanvas}
+            sceneProps={sceneProps}
+            onSelectionChange={setSelection}
+            onCanvasChange={handleCanvasChange}
+            onTextPropsChange={setTextProps}
+            onImagePropsChange={setImageProps}
+          />
+        )}
+      </div>
+
+      {/* Right Panel - Properties */}
+      <div className="w-72 h-full border-l bg-background flex-shrink-0 overflow-hidden">
+        <PropertiesPanel
+          selectionType={selection.type}
+          textProps={textProps}
+          imageProps={imageProps}
+          sceneProps={sceneProps}
+          backgroundImageUrl={currentSlide?.backgroundImageUrl}
+          onTextChange={handleTextChange}
+          onImageChange={handleImageChange}
+          onSceneChange={handleSceneChange}
+          onFitImageToCanvas={() => canvasRef.current?.fitSelectedImage()}
+          onImageSelect={(url, collectionId) =>
+            canvasRef.current?.replaceSelectedImage(url, collectionId)
+          }
+          onBackgroundImageSelect={handleBackgroundImageSelect}
+          onRemoveBackgroundImage={handleRemoveBackgroundImage}
+          onFitBackgroundImage={() => canvasRef.current?.fitBackgroundImage()}
+        />
       </div>
     </div>
   );

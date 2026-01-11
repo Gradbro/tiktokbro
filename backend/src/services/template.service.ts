@@ -1,7 +1,7 @@
-import { Template, ITemplate, ITemplateSlide, ITemplateTextBox } from '../models/template.model';
+import { Template, ITemplate, ITemplateSlide } from '../models/template.model';
 import { Collection } from '../models/collection.model';
 import { Image } from '../models/image.model';
-import { scrapeTikTokSlideshow, TikTokScrapeResult } from './tiktok.service';
+import { scrapeTikTokSlideshow } from './tiktok.service';
 import { createPinterestScraper } from './pinterest.service';
 import { generateCreatePlan, RemixPlan } from './plan.service';
 import { analyzeSlides } from './slide-analysis.service';

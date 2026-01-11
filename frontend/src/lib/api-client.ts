@@ -598,9 +598,7 @@ export async function getCollection(id: string): Promise<CollectionGetResponse> 
 /**
  * Get a random image from a collection
  */
-export async function getRandomCollectionImage(
-  collectionId: string
-): Promise<{
+export async function getRandomCollectionImage(collectionId: string): Promise<{
   success: boolean;
   data?: { id: string; url: string; source: string };
   error?: string;
